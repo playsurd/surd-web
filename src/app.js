@@ -94,10 +94,24 @@
     return ((w[0] || '?')[0] + (w.length > 1 ? w[1][0] : '')).toUpperCase();
   }
 
-  function card(g) {
+  // Inside a series folder the prefix is redundant and eats both title lines:
+  // "Friday Night Funkin': Mistful Crimson Morning" -> "Mistful Crimson Morning".
+  // Only strip when an explicit separator follows the series name. Without that guard
+  // "Slope 2" collapses to "2" and "Sonic the Hedgehog 2" to "the Hedgehog 2".
+  function shortTitle(title, colTitle) {
+    if (!colTitle) return title;
+    var t = title.replace(/^\s+/, '');
+    if (t.toLowerCase().indexOf(colTitle.toLowerCase()) !== 0) return title;
+    var tail = t.slice(colTitle.length);
+    var m = tail.match(/^\s*[:–—-]\s*(.+)$/);
+    return m && m[1].length > 2 ? m[1] : title;
+  }
+
+  function card(g, colTitle) {
     var el = document.createElement('button');
     el.className = 'card noart';
     el.setAttribute('role', 'listitem');
+    el.title = g.title;                       // full name always available on hover
     el.style.background = tint(g.id);
 
     var ini = document.createElement('div');
@@ -113,7 +127,7 @@
 
     var t = document.createElement('div');
     t.className = 't';
-    t.textContent = g.title;
+    t.textContent = shortTitle(g.title, colTitle);
 
     var f = document.createElement('button');
     f.className = 'fav' + (favs.indexOf(g.id) >= 0 ? ' on' : '');
@@ -197,7 +211,8 @@
       crumb.hidden = false;
       $('#crumb-title').textContent = colById[openCol].title;
       $('#empty').hidden = true;
-      inCol(openCol).forEach(function (g) { grid.appendChild(card(g)); });
+      var ct = colById[openCol].title;
+      inCol(openCol).forEach(function (g) { grid.appendChild(card(g, ct)); });
       return;
     }
 

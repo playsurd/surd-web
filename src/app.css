@@ -172,10 +172,16 @@ h2::after{content:"";flex:1;height:1px;background:var(--line)}
 
 .card .t{
   position:absolute;left:0;right:0;bottom:0;z-index:2;
-  padding:30px 11px 10px;
+  padding:30px 10px 9px;
   background:linear-gradient(to top,rgba(0,0,0,.92) 22%,rgba(0,0,0,.55) 60%,transparent);
-  font-size:13.5px;font-weight:600;line-height:1.25;letter-spacing:-.01em;
+  font-size:13px;font-weight:600;line-height:1.22;letter-spacing:-.012em;
+  /* titles run to 74 chars and include unbroken 39-char words, so break anywhere
+     and clamp to two lines with an ellipsis rather than letting them escape the tile */
+  overflow-wrap:anywhere;word-break:break-word;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+}
+@supports not (-webkit-line-clamp:2){
+  .card .t{max-height:calc(2.44em + 39px)}
 }
 /* No cover art: the scrim has nothing to fade over and reads as an artifact,
    so use a solid bar and hide the empty <img> entirely. */
