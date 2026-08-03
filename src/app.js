@@ -26,10 +26,15 @@
   var CDN = window.SURD_CDN || { A: [''], C: [''] };
   var mirror = get('mirror', 0);
 
-  function resolve(url, kind) {
-    var list = CDN[kind] || [''];
+  // Any {LETTER} prefix maps to its own ordered base list, so a tier can live in a
+  // separate repo and be repointed — or lost — without touching the rest of the library.
+  function resolve(url) {
+    var s = String(url || '');
+    var m = s.match(/^\{([A-Z])\}/);
+    if (!m) return s;
+    var list = CDN[m[1]] || [''];
     var base = list[Math.min(mirror, list.length - 1)] || list[0] || '';
-    return String(url || '').replace(/^\{[AC]\}/, base);
+    return s.replace(/^\{[A-Z]\}/, base);
   }
 
   // Covers fall through the base list independently — one dead CDN shouldn't blank the grid.
@@ -39,7 +44,7 @@
     if (i >= list.length) { img.removeAttribute('src'); return; }
     img.onerror = function () { coverFallback(img, url, i + 1, card); };
     img.onload = function () { if (card) card.classList.remove('noart'); };
-    img.src = String(url).replace(/^\{C\}/, list[i]);
+    img.src = String(url).replace(/^\{[A-Z]\}/, list[i]);
   }
 
   /* ---------- state ---------- */
@@ -281,7 +286,7 @@
       }
     }
 
-    $('#p-frame').src = resolve(g.src, 'A');
+    $('#p-frame').src = resolve(g.src);
     $('#player').hidden = false;
     syncFavBtn();
   }
