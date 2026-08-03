@@ -361,6 +361,20 @@
 
   $('#crumb-back').onclick = function () { openCol = null; renderGrid(); };
 
+  // "classroom.google.com" without a scheme is treated as a RELATIVE path by
+  // location.replace, so the panic key silently does nothing. Assume https.
+  function normalizeUrl(u) {
+    u = String(u || '').trim();
+    if (!u) return '';
+    if (u.indexOf('://') > 0) return u;                       // http://, https://, …
+    if (/^(about|chrome|edge|mailto|data|file):/i.test(u)) return u;
+    if (u.indexOf('//') === 0) return 'https:' + u;
+    // NB: a bare "host:port" must NOT be mistaken for a scheme.
+    return 'https://' + u;
+  }
+
+  function panicUrl() { return normalizeUrl(get('panic', '')); }
+
   /* ---------- cloaking ---------- */
   function applyCloak() {
     var t = get('cloakTitle', '');
@@ -379,6 +393,11 @@
   $('#s-title').oninput = function (e) { set('cloakTitle', e.target.value); applyCloak(); };
   $('#s-icon').oninput = function (e) { set('cloakIcon', e.target.value); applyCloak(); };
   $('#s-panic').oninput = function (e) { set('panic', e.target.value); };
+  // show what will actually be navigated to, so the scheme isn't a hidden surprise
+  $('#s-panic').onblur = function (e) {
+    var n = normalizeUrl(e.target.value);
+    if (n && n !== e.target.value) { e.target.value = n; set('panic', n); }
+  };
 
   /* ---------- rebindable panic key ---------- */
   var panicKey = get('panicKey', '`');
@@ -406,7 +425,7 @@
     f.src = location.href;
     w.document.body.style.margin = '0';
     w.document.body.appendChild(f);
-    location.replace(get('panic', '') || 'https://www.google.com');
+    location.replace(panicUrl() || 'https://www.google.com');
   };
 
   /* ---------- mirror switcher ---------- */
@@ -448,7 +467,7 @@
 
     var typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
     if (e.key === panicKey && !typing) {
-      var p = get('panic', '');
+      var p = panicUrl();
       if (p) { e.preventDefault(); location.replace(p); }
     }
     if (e.key === 'Escape' && !$('#player').hidden) closePlayer();
