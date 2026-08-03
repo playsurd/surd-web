@@ -104,19 +104,16 @@ content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
 background:linear-gradient(to right,
 rgba(8,8,10,.94) 0%, rgba(8,8,10,.9) 34%, rgba(8,8,10,.45) 62%, rgba(8,8,10,.1) 100%)
 }
-#hero-ring{
-position:absolute;inset:1px;z-index:3;width:calc(100% - 2px);height:calc(100% - 2px);
-pointer-events:none;overflow:visible;display:block
+#hero-bar{
+position:absolute;top:-1px;left:-1px;right:-1px;height:2px;z-index:3;
+background:var(--acc);pointer-events:none;
+transform:scaleX(0);transform-origin:left center;
+animation:herobar var(--hero-ms,12000ms) linear forwards
 }
-#hero-ring rect{
-fill:none;stroke:var(--acc);stroke-width:2;vector-effect:non-scaling-stroke;
-stroke-linecap:butt;stroke-dasharray:1 1;stroke-dashoffset:1;
-animation:heroring var(--hero-ms,5000ms) linear forwards
-}
-#hero-ring.paused rect{animation-play-state:paused}
-#hero-ring.off{display:none}
-@keyframes heroring{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
-@media (prefers-reduced-motion:reduce){#hero-ring{display:none}}
+#hero-bar.paused{animation-play-state:paused}
+#hero-bar.off{display:none}
+@keyframes herobar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media (prefers-reduced-motion:reduce){#hero-bar{display:none}}
 #hero-art,#hero-shot,#hero-body{transition:opacity .26s ease}
 #hero.swap #hero-art,#hero.swap #hero-shot,#hero.swap #hero-body{opacity:0}
 #hero-body{position:relative;z-index:4;max-width:min(640px,58%)}
@@ -346,7 +343,7 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
     <div id="hero">
       <div id="hero-art"></div>
       <div id="hero-shot"></div>
-      <svg id="hero-ring" aria-hidden="true"><rect pathLength="1"></rect></svg>
+      <div id="hero-bar" aria-hidden="true"></div>
       <div id="hero-body">
         <h1 id="hero-title"></h1>
         <p id="hero-meta"></p>
@@ -761,7 +758,7 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
   var heroGame = null;
   var heroIdx = 0;
   var heroTimer = null;
-  var HERO_MS = 5000;
+  var HERO_MS = 12000;
   document.documentElement.style.setProperty('--hero-ms', HERO_MS + 'ms');
   var HEROES = (function () {
     var pool = GAMES.filter(function (g) { return g.hero; })
@@ -817,39 +814,17 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
       b.setAttribute('aria-current', i === heroIdx ? 'true' : 'false');
     });
   }
-  function sizeRing() {
-    var ring = $('#hero-ring');
-    var hero = $('#hero');
-    if (!ring || !hero) return;
-    var b = hero.getBoundingClientRect();
-    var w = Math.max(1, Math.round(b.width) - 2);
-    var h = Math.max(1, Math.round(b.height) - 2);
-    ring.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-    var r = ring.firstElementChild;
-    if (!r) return;
-    r.setAttribute('x', 1); r.setAttribute('y', 1);
-    r.setAttribute('width', Math.max(1, w - 2));
-    r.setAttribute('height', Math.max(1, h - 2));
-  }
   function restartRing() {
-    var ring = $('#hero-ring');
-    if (!ring) return;
-    ring.classList.toggle('off', HEROES.length < 2);
-    sizeRing();
-    var r = ring.firstElementChild;
-    if (!r) return;
-    r.style.animation = 'none';
-    void r.getBoundingClientRect();
-    r.style.animation = '';
+    var bar = $('#hero-bar');
+    if (!bar) return;
+    bar.classList.toggle('off', HEROES.length < 2);
+    bar.style.animation = 'none';
+    void bar.getBoundingClientRect();
+    bar.style.animation = '';
   }
-  var ringResize = null;
-  window.addEventListener('resize', function () {
-    clearTimeout(ringResize);
-    ringResize = setTimeout(sizeRing, 120);
-  });
   function ringPaused(on) {
-    var ring = $('#hero-ring');
-    if (ring) ring.classList.toggle('paused', !!on);
+    var bar = $('#hero-bar');
+    if (bar) bar.classList.toggle('paused', !!on);
   }
   var FADE_MS = 260;
   var swapTimer = null;
