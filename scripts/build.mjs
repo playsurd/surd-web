@@ -18,11 +18,27 @@ const read = (p) => readFileSync(join(root, p), 'utf8');
 const build = new Date().toISOString().slice(0, 10);
 const { games } = JSON.parse(read('data/games.json'));
 const cdn = JSON.parse(read('data/cdn.json'));
+const { collections } = JSON.parse(read('data/collections.json'));
+
+// Assign each game to a series collection, so one card can stand for a 50-entry mod series.
+// A game keeps its own identity — the collection is just how the grid groups it.
+const cols = collections.map((c) => ({ ...c, re: new RegExp(c.match, 'i'), n: 0 }));
+for (const g of games) {
+  const hit = cols.find((c) => c.re.test(g.title));
+  if (hit) { g.col = hit.id; hit.n++; }
+}
+
+// A one-game "series" is just a game — don't make the user click through to it.
+const live = cols.filter((c) => c.n > 1);
+const liveIds = new Set(live.map((c) => c.id));
+for (const g of games) if (g.col && !liveIds.has(g.col)) delete g.col;
 
 // Strip fields the client never reads — keeps the inlined payload small.
 // src/cover keep their {A}/{C} placeholders; the client resolves them against cdn bases.
-const slim = games.map(({ id, title, tags, src, cover, author, authorLink }) =>
-  ({ id, title, tags, src, cover, author, authorLink }));
+const slim = games.map(({ id, title, tags, src, cover, author, authorLink, col, pick }) =>
+  ({ id, title, tags, src, cover, author, authorLink, col, pick }));
+
+const colMeta = live.map((c) => ({ id: c.id, title: c.title, n: c.n }));
 
 const bases = { A: cdn.A, C: cdn.C };
 
@@ -37,6 +53,7 @@ const html = read('src/index.html')
   .replace('/*STYLE*/', () => css)
   .replace('/*GAMES*/', () =>
     `window.SURD_GAMES=${JSON.stringify(slim)};` +
+    `window.SURD_COLS=${JSON.stringify(colMeta)};` +
     `window.SURD_CDN=${JSON.stringify(bases)};` +
     `window.SURD_BUILD=${JSON.stringify(build)};`)
   .replace('/*APP*/', () => read('src/app.js'));
@@ -46,4 +63,7 @@ writeFileSync(join(root, 'dist/index.html'), html);
 writeFileSync(join(root, 'dist/surd.html'), html);
 
 const kb = (Buffer.byteLength(html) / 1024).toFixed(1);
+const inCols = games.filter((g) => g.col).length;
 console.log(`built dist/index.html + dist/surd.html — ${games.length} games, ${kb} KB`);
+console.log(`  ${live.length} collections holding ${inCols} games -> grid shows ${games.length - inCols + live.length} cards`);
+console.log(`  ${games.filter((g) => g.pick).length} editorial picks`);

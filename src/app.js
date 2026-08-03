@@ -43,6 +43,15 @@
   /* ---------- state ---------- */
   var query = '';
   var tag = null;
+  var openCol = null;                       // currently opened series folder
+
+  var COLS = window.SURD_COLS || [];
+  var colById = {};
+  COLS.forEach(function (c) { colById[c.id] = c; });
+
+  function inCol(id) {
+    return GAMES.filter(function (g) { return g.col === id; });
+  }
 
   /* ---------- tag bar ---------- */
   var counts = {};
@@ -71,10 +80,28 @@
            (g.tags || []).join(' ').indexOf(query) >= 0;
   }
 
+  // Stable colour per game so a missing cover still looks designed, not broken.
+  function tint(id) {
+    var h = 0;
+    for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
+    return 'linear-gradient(150deg,hsl(' + h + ' 45% 26%),hsl(' + ((h + 42) % 360) + ' 50% 14%))';
+  }
+
+  function initials(title) {
+    var w = title.replace(/[^a-z0-9 ]/gi, ' ').trim().split(/\s+/);
+    return ((w[0] || '?')[0] + (w.length > 1 ? w[1][0] : '')).toUpperCase();
+  }
+
   function card(g) {
     var el = document.createElement('button');
     el.className = 'card';
     el.setAttribute('role', 'listitem');
+    el.style.background = tint(g.id);
+
+    var ini = document.createElement('div');
+    ini.className = 'init';
+    ini.textContent = initials(g.title);
+    el.appendChild(ini);
 
     var img = document.createElement('img');
     img.loading = 'lazy';
@@ -97,6 +124,37 @@
     return el;
   }
 
+  // One card standing in for a whole series. Cover comes from the best-known member.
+  function colCard(c) {
+    var members = inCol(c.id);
+    var face = members.filter(function (g) { return g.pick; })[0] || members[0];
+    var el = document.createElement('button');
+    el.className = 'card col';
+    el.setAttribute('role', 'listitem');
+    el.style.background = tint(c.id);
+
+    var ini = document.createElement('div');
+    ini.className = 'init';
+    ini.textContent = initials(c.title);
+    el.appendChild(ini);
+
+    var img = document.createElement('img');
+    img.loading = 'lazy'; img.decoding = 'async'; img.alt = '';
+    if (face && face.cover) coverFallback(img, face.cover, 0);
+
+    var t = document.createElement('div');
+    t.className = 't';
+    t.textContent = c.title;
+
+    var n = document.createElement('div');
+    n.className = 'n';
+    n.textContent = members.length;
+
+    el.appendChild(img); el.appendChild(t); el.appendChild(n);
+    el.onclick = function () { openCol = c.id; renderGrid(); window.scrollTo(0, 0); };
+    return el;
+  }
+
   function section(title, list, grid) {
     if (!list.length) return;
     var h = document.createElement('h2');
@@ -114,18 +172,59 @@
   function renderGrid() {
     var grid = $('#grid');
     grid.textContent = '';
-    var list = GAMES.filter(matches);
-    $('#empty').hidden = list.length > 0;
+    $('#crumb').hidden = true;
+    // The hero is a front-page thing — it has no business sitting above search results.
+    $('#hero').style.display = (query || tag || openCol) ? 'none' : '';
 
-    // Favorites and recents only surface on the unfiltered view.
-    if (!query && !tag) {
-      section('Favorites', favs.map(byId).filter(Boolean), grid);
-      section('Recent', recents.map(byId).filter(Boolean).slice(0, 8), grid);
-      if (favs.length || recents.length) section('All games', list, grid);
-      else list.forEach(function (g) { grid.appendChild(card(g)); });
-    } else {
-      list.forEach(function (g) { grid.appendChild(card(g)); });
+    // Search and tag filters go through EVERYTHING, flat. If you know what you want,
+    // folders should never stand between you and it.
+    if (query || tag) {
+      var flat = GAMES.filter(matches);
+      $('#empty').hidden = flat.length > 0;
+      flat.forEach(function (g) { grid.appendChild(card(g)); });
+      return;
     }
+
+    // Inside a folder: just that series.
+    if (openCol && colById[openCol]) {
+      var crumb = $('#crumb');
+      crumb.hidden = false;
+      $('#crumb-title').textContent = colById[openCol].title;
+      $('#empty').hidden = true;
+      inCol(openCol).forEach(function (g) { grid.appendChild(card(g)); });
+      return;
+    }
+
+    $('#empty').hidden = true;
+
+    section('Favorites', favs.map(byId).filter(Boolean), grid);
+    section('Recent', recents.map(byId).filter(Boolean).slice(0, 8), grid);
+
+    // Hand-picked first — the whole point of curating 677 games.
+    var picks = GAMES.filter(function (g) { return g.pick; });
+    section('Picks', picks, grid);
+
+    // Everything else: series collapse into one card each, standalone games stay as-is.
+    var rest = [];
+    var usedCols = {};
+    GAMES.forEach(function (g) {
+      if (g.pick) return;
+      if (g.col && colById[g.col]) {
+        if (!usedCols[g.col]) { usedCols[g.col] = true; rest.push(colById[g.col]); }
+      } else {
+        rest.push(g);
+      }
+    });
+
+    if (picks.length || favs.length || recents.length) {
+      var h = document.createElement('h2');
+      h.textContent = 'All games';
+      h.style.gridColumn = '1/-1';
+      grid.appendChild(h);
+    }
+    rest.forEach(function (x) {
+      grid.appendChild(x.n !== undefined && x.title && !x.src ? colCard(x) : card(x));
+    });
   }
 
   function toggleFav(id) {
@@ -187,6 +286,39 @@
     if (f.requestFullscreen) f.requestFullscreen();
   };
 
+  /* ---------- hero ---------- */
+  var heroGame = null;
+
+  function pickHero() {
+    var pool = GAMES.filter(function (g) { return g.pick; });
+    if (!pool.length) pool = GAMES;
+    return pool[Math.floor(Math.random() * pool.length)] || null;
+  }
+
+  function renderHero(g) {
+    heroGame = g;
+    if (!g) { $('#hero').style.display = 'none'; return; }
+    var art = $('#hero-art');
+    art.style.background = tint(g.id);
+    art.textContent = '';
+
+    if (g.cover) {
+      var img = document.createElement('img');
+      img.alt = ''; img.decoding = 'async';
+      coverFallback(img, g.cover, 0);
+      art.appendChild(img);
+    }
+
+    $('#hero-title').textContent = g.title;
+    var bits = [];
+    if (g.author) bits.push(g.author);
+    if (g.tags && g.tags.length) bits.push(g.tags.join(' · '));
+    $('#hero-meta').textContent = bits.join('  —  ');
+  }
+
+  $('#hero-play').onclick = function () { if (heroGame) play(heroGame); };
+  $('#hero-rand').onclick = function () { renderHero(pickHero()); };
+
   /* ---------- tabs ---------- */
   Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
     b.onclick = function () {
@@ -200,7 +332,13 @@
   });
 
   /* ---------- search ---------- */
-  $('#q').oninput = function (e) { query = e.target.value.trim().toLowerCase(); renderGrid(); };
+  $('#q').oninput = function (e) {
+    query = e.target.value.trim().toLowerCase();
+    if (query) openCol = null;
+    renderGrid();
+  };
+
+  $('#crumb-back').onclick = function () { openCol = null; renderGrid(); };
 
   /* ---------- cloaking ---------- */
   function applyCloak() {
@@ -272,7 +410,9 @@
 
   /* ---------- go ---------- */
   applyCloak();
+  renderHero(pickHero());
   renderTags();
   renderGrid();
   $('#build').textContent = GAMES.length + ' games · build ' + (window.SURD_BUILD || 'dev');
+  $('#foot-count').textContent = GAMES.length + ' games · ' + COLS.length + ' series · no ads · no tracking';
 })();
