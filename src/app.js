@@ -80,11 +80,11 @@
            (g.tags || []).join(' ').indexOf(query) >= 0;
   }
 
-  // Stable colour per game so a missing cover still looks designed, not broken.
+  // Stable flat colour per game so a missing cover still looks designed, not broken.
   function tint(id) {
     var h = 0;
     for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
-    return 'linear-gradient(150deg,hsl(' + h + ' 45% 26%),hsl(' + ((h + 42) % 360) + ' 50% 14%))';
+    return 'hsl(' + h + ' 32% 20%)';
   }
 
   function initials(title) {
@@ -148,7 +148,11 @@
 
     var n = document.createElement('div');
     n.className = 'n';
-    n.textContent = members.length;
+    // stacked-layers glyph — signals "several games behind this card"
+    n.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"' +
+      ' stroke-linejoin="round"><path d="M8 1.7 14.5 5 8 8.3 1.5 5 8 1.7Z"/>' +
+      '<path d="M1.5 8.2 8 11.5l6.5-3.3"/></svg>';
+    n.appendChild(document.createTextNode(String(members.length)));
 
     el.appendChild(img); el.appendChild(t); el.appendChild(n);
     el.onclick = function () { openCol = c.id; renderGrid(); window.scrollTo(0, 0); };
