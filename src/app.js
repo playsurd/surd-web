@@ -199,7 +199,9 @@
     grid.textContent = '';
     $('#crumb').hidden = true;
     // The hero is a front-page thing — it has no business sitting above search results.
-    $('#hero').style.display = (query || tag || openCol) ? 'none' : '';
+    var heroHidden = !!(query || tag || openCol);
+    $('#hero').style.display = heroHidden ? 'none' : '';
+    if (heroHidden) stopHeroTimer(); else startHeroTimer();
 
     // Search and tag filters go through EVERYTHING, flat. If you know what you want,
     // folders should never stand between you and it.
@@ -295,6 +297,7 @@
     }
 
     $('#player').hidden = false;
+    stopHeroTimer();
     syncFavBtn();
     launch(g);
   }
@@ -386,6 +389,7 @@
 
   function closePlayer() {
     $('#player').hidden = true;
+    startHeroTimer();
     launchToken++;                 // cancel any in-flight fetch
     freshFrame();                  // tear the game down: kills audio, loops, timers
     current = null;
@@ -406,28 +410,25 @@
     if (f.requestFullscreen) f.requestFullscreen();
   };
 
-  /* ---------- hero ---------- */
+  /* ---------- hero carousel ---------- */
   var heroGame = null;
+  var heroIdx = 0;
+  var heroTimer = null;
+  var HERO_MS = 5000;
 
-  // Heroes are their own curated list — a headliner need not be in the Picks row.
-  function pickHero() {
+  var HEROES = (function () {
     var pool = GAMES.filter(function (g) { return g.hero; })
       .sort(function (a, b) { return a.hero - b.hero; });
     if (!pool.length) pool = GAMES.filter(function (g) { return g.pick; });
-    if (!pool.length) pool = GAMES;
-    // rotate through them rather than repeating the same one every visit
-    var seen = get('heroIdx', -1) + 1;
-    if (seen >= pool.length) seen = 0;
-    set('heroIdx', seen);
-    return pool[seen] || null;
-  }
+    if (!pool.length) pool = GAMES.slice(0, 1);
+    return pool;
+  })();
 
-  // "Random game" should stay random across the whole library, not the hero list.
   function randomGame() {
     return GAMES[Math.floor(Math.random() * GAMES.length)] || null;
   }
 
-  function renderHero(g) {
+  function paintHero(g) {
     heroGame = g;
     if (!g) { $('#hero').style.display = 'none'; return; }
     var art = $('#hero-art');
@@ -444,12 +445,60 @@
     $('#hero-title').textContent = g.title;
     var bits = [];
     if (g.author) bits.push(g.author);
+    if (g.porter) bits.push('web port by ' + g.porter);
     if (g.tags && g.tags.length) bits.push(g.tags.join(' · '));
     $('#hero-meta').textContent = bits.join('  —  ');
   }
 
+  function paintDots() {
+    var wrap = $('#hero-dots');
+    if (HEROES.length < 2) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    if (wrap.childNodes.length !== HEROES.length) {
+      wrap.textContent = '';
+      HEROES.forEach(function (g, i) {
+        var b = document.createElement('button');
+        b.className = 'dot';
+        b.setAttribute('aria-label', 'Show ' + g.title);
+        b.onclick = function () { showHero(i, true); };
+        wrap.appendChild(b);
+      });
+    }
+    Array.prototype.forEach.call(wrap.childNodes, function (b, i) {
+      b.classList.toggle('on', i === heroIdx);
+      b.setAttribute('aria-current', i === heroIdx ? 'true' : 'false');
+    });
+  }
+
+  function showHero(i, manual) {
+    if (!HEROES.length) return;
+    heroIdx = ((i % HEROES.length) + HEROES.length) % HEROES.length;
+    paintHero(HEROES[heroIdx]);
+    paintDots();
+    if (manual) startHeroTimer();          // a manual move restarts the dwell
+  }
+
+  function startHeroTimer() {
+    stopHeroTimer();
+    if (HEROES.length < 2) return;
+    // Don't animate for people who asked not to.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    heroTimer = setInterval(function () { showHero(heroIdx + 1); }, HERO_MS);
+  }
+  function stopHeroTimer() { if (heroTimer) { clearInterval(heroTimer); heroTimer = null; } }
+
+  $('#hero-prev').onclick = function () { showHero(heroIdx - 1, true); };
+  $('#hero-next').onclick = function () { showHero(heroIdx + 1, true); };
+
+  // Pause while the pointer is over it — nothing worse than the banner moving mid-click.
+  $('#hero').addEventListener('mouseenter', stopHeroTimer);
+  $('#hero').addEventListener('mouseleave', function () {
+    if (!$('#player').hidden) return;
+    if ($('#hero').style.display !== 'none') startHeroTimer();
+  });
+
   $('#hero-play').onclick = function () { if (heroGame) play(heroGame); };
-  $('#hero-rand').onclick = function () { renderHero(randomGame()); };
+  $('#hero-rand').onclick = function () { stopHeroTimer(); paintHero(randomGame()); };
 
   /* ---------- tabs ---------- */
   Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
@@ -587,7 +636,8 @@
 
   /* ---------- go ---------- */
   applyCloak();
-  renderHero(pickHero());
+  showHero(0);
+  startHeroTimer();
   renderTags();
   renderGrid();
   $('#build').textContent = GAMES.length + ' games · build ' + (window.SURD_BUILD || 'dev');
