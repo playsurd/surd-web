@@ -760,7 +760,7 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
   };
   var heroGame = null;
   var heroIdx = 0;
-  var heroTimer = null;
+  var heroRunning = false;
   var HERO_MS = 12000;
   document.documentElement.style.setProperty('--hero-ms', HERO_MS + 'ms');
   var HEROES = (function () {
@@ -869,16 +869,24 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
     }, FADE_MS);
   }
   function startHeroTimer() {
-    stopHeroTimer();
     if (HEROES.length < 2) return;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    heroRunning = true;
     ringPaused(false);
-    heroTimer = setInterval(function () { showHero(heroIdx + 1); }, HERO_MS);
   }
   function stopHeroTimer() {
-    if (heroTimer) { clearInterval(heroTimer); heroTimer = null; }
+    heroRunning = false;
     ringPaused(true);
   }
+  (function () {
+    var bar = $('#hero-bar');
+    if (!bar) return;
+    bar.addEventListener('animationend', function (e) {
+      if (e.animationName !== 'herobar') return;
+      if (!heroRunning || HEROES.length < 2) return;
+      showHero(heroIdx + 1);
+    });
+  })();
   $('#hero').addEventListener('mouseenter', stopHeroTimer);
   $('#hero').addEventListener('mouseleave', function () {
     if (!$('#player').hidden) return;
