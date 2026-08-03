@@ -286,14 +286,94 @@
       }
     }
 
-    $('#p-frame').src = resolve(g.src);
     $('#player').hidden = false;
     syncFavBtn();
+    launch(g);
+  }
+
+  /* ---------- launching a game ----------
+   * Games are fetched and written into a src-less iframe rather than navigated to.
+   * A filter that categorises or logs URLs never sees the asset host at all, because
+   * no navigation happens — only an XHR and its subresources. The cost is that the
+   * written document is same-origin with us; we hold nothing sensitive, so that's an
+   * acceptable trade for now (revisit if accounts ever land).
+   *
+   * Falls back to a plain iframe src when fetch can't work — notably file://, where
+   * the offline build runs and cross-origin fetch is blocked.
+   */
+  function candidates(url) {
+    var s = String(url || '');
+    var m = s.match(/^\{([A-Z])\}/);
+    if (!m) return [s];
+    var list = CDN[m[1]] || [''];
+    var i = Math.min(mirror, list.length - 1);
+    // start from the user's chosen mirror, then try the others
+    return list.slice(i).concat(list.slice(0, i))
+      .map(function (b) { return s.replace(/^\{[A-Z]\}/, b); });
+  }
+
+  // A document written into a blank iframe resolves relative URLs against OUR origin,
+  // so it must carry an absolute <base> pointing at its own directory.
+  function withBase(html, abs) {
+    var dir = abs.slice(0, abs.lastIndexOf('/') + 1);
+    var tag = '<base href="' + dir + '">';
+    if (/<base\b[^>]*>/i.test(html)) return html.replace(/<base\b[^>]*>/i, tag);
+    if (/<head[^>]*>/i.test(html)) return html.replace(/<head([^>]*)>/i, '<head$1>' + tag);
+    return tag + html;
+  }
+
+  function freshFrame() {
+    var old = $('#p-frame');
+    var f = document.createElement('iframe');
+    f.id = 'p-frame';
+    f.title = 'Game';
+    f.setAttribute('allow', 'autoplay; fullscreen; gamepad; pointer-lock');
+    f.setAttribute('allowfullscreen', '');
+    old.parentNode.replaceChild(f, old);
+    return f;
+  }
+
+  function writeInto(html) {
+    var f = freshFrame();
+    var doc = f.contentDocument;
+    doc.open();
+    doc.write(html);
+    doc.close();
+  }
+
+  var launchToken = 0;
+
+  function launch(g) {
+    var token = ++launchToken;
+    var urls = candidates(g.src);
+
+    // file:// can't fetch cross-origin — the offline build navigates instead.
+    if (location.protocol === 'file:' || typeof fetch !== 'function') {
+      freshFrame().src = urls[0];
+      return;
+    }
+
+    var i = 0;
+    (function attempt() {
+      if (token !== launchToken) return;             // a newer launch superseded this
+      if (i >= urls.length) { freshFrame().src = urls[0]; return; }   // last resort
+      var url = urls[i++];
+      fetch(url + (url.indexOf('?') < 0 ? '?t=' : '&t=') + Date.now())
+        .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
+        .then(function (html) {
+          // jsDelivr answers 200 with this body for a missing file
+          if (/^\s*Couldn't find the requested file/i.test(html)) return Promise.reject('404-body');
+          if (token !== launchToken) return;
+          writeInto(withBase(html, url));
+        })
+        .catch(function () { attempt(); });
+    })();
   }
 
   function closePlayer() {
     $('#player').hidden = true;
-    $('#p-frame').src = 'about:blank';
+    launchToken++;                 // cancel any in-flight fetch
+    freshFrame();                  // tear the game down: kills audio, loops, timers
     current = null;
     renderGrid();
   }
