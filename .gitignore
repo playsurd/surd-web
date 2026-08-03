@@ -11,3 +11,16 @@ node_modules/
 
 # internal notes — never commit
 README.internal.md
+
+# internal curation tool
+tools/
+mirror/
+data/catalogue.full.json
+data/mirror-report.json
+
+# internal ingestion tooling — references upstream sources, do not publish
+scripts/import-catalogue.mjs
+scripts/curate.mjs
+scripts/make-curator.mjs
+scripts/mirror.mjs
+data/keep.txt
