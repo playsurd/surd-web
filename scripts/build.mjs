@@ -55,12 +55,15 @@ for (const g of games) if (g.col && !liveIds.has(g.col)) delete g.col;
 
 // Strip fields the client never reads — keeps the inlined payload small.
 // src/cover keep their {A}/{C} placeholders; the client resolves them against cdn bases.
-const slim = games.map(({ id, title, tags, src, cover, author, authorLink, col, pick }) =>
-  ({ id, title, tags, src, cover, author, authorLink, col, pick }));
+const slim = games.map(({ id, title, tags, src, cover, author, authorLink, porter, col, pick, hero }) =>
+  ({ id, title, tags, src, cover, author, authorLink, porter, col, pick, hero }));
 
 const colMeta = live.map((c) => ({ id: c.id, title: c.title, n: c.n }));
 
-const bases = { A: cdn.A, C: cdn.C };
+// Every tier must reach the client: A/B/X/Y/C/R. Emitting only A and C left {B}, {X}
+// and {Y} games resolving against an empty base — i.e. every big or high-risk game broken.
+const bases = {};
+for (const k of Object.keys(cdn)) if (/^[A-Z]$/.test(k)) bases[k] = cdn[k];
 
 // Conservative CSS squeeze: comments + leading indentation + blank lines only.
 const css = read('src/app.css')
@@ -69,6 +72,57 @@ const css = read('src/app.css')
   .replace(/\n{2,}/g, '\n')
   .trim();
 
+/* Strip comments from the shipped JS.
+ * Source keeps its comments; the artifact doesn't. Regex alone is unsafe here — "//"
+ * appears inside URLs, strings and template literals — so walk the source tracking
+ * string / template / regex-literal state and only drop comments found in code.
+ */
+function stripJsComments(src) {
+  let out = '', i = 0;
+  const n = src.length;
+  let quote = null, tpl = 0, inRe = false;
+  const prevSignificant = () => {
+    for (let k = out.length - 1; k >= 0; k--) {
+      const c = out[k];
+      if (c !== ' ' && c !== '\n' && c !== '\t' && c !== '\r') return c;
+    }
+    return '';
+  };
+  while (i < n) {
+    const c = src[i], d = src[i + 1];
+    if (quote) {
+      out += c;
+      if (c === '\\') { out += src[i + 1] || ''; i += 2; continue; }
+      if (c === quote) quote = null;
+      i++; continue;
+    }
+    if (tpl) {
+      out += c;
+      if (c === '\\') { out += src[i + 1] || ''; i += 2; continue; }
+      if (c === '`') tpl--;
+      i++; continue;
+    }
+    if (inRe) {
+      out += c;
+      if (c === '\\') { out += src[i + 1] || ''; i += 2; continue; }
+      if (c === '/') inRe = false;
+      i++; continue;
+    }
+    if (c === '"' || c === "'") { quote = c; out += c; i++; continue; }
+    if (c === '`') { tpl++; out += c; i++; continue; }
+    if (c === '/' && d === '/') { while (i < n && src[i] !== '\n') i++; continue; }
+    if (c === '/' && d === '*') { i += 2; while (i < n && !(src[i] === '*' && src[i + 1] === '/')) i++; i += 2; continue; }
+    if (c === '/') {
+      // a regex literal can only follow an operator or opening bracket, never a value
+      const p = prevSignificant();
+      if (p === '' || '(,=:[!&|?{};+-*%~^<>'.indexOf(p) >= 0) inRe = true;
+      out += c; i++; continue;
+    }
+    out += c; i++;
+  }
+  return out.split('\n').map((l) => l.replace(/[ \t]+$/, '')).filter((l) => l.trim()).join('\n');
+}
+
 const html = read('src/index.html')
   .replace('/*STYLE*/', () => css)
   .replace('/*GAMES*/', () =>
@@ -76,7 +130,8 @@ const html = read('src/index.html')
     `window.SURD_COLS=${JSON.stringify(colMeta)};` +
     `window.SURD_CDN=${JSON.stringify(bases)};` +
     `window.SURD_BUILD=${JSON.stringify(build)};`)
-  .replace('/*APP*/', () => read('src/app.js'));
+  .replace('/*APP*/', () => stripJsComments(read('src/app.js')))
+  .replace(/<!--[\s\S]*?-->/g, '');
 
 mkdirSync(join(root, 'dist'), { recursive: true });
 writeFileSync(join(root, 'dist/index.html'), html);
@@ -86,4 +141,4 @@ const kb = (Buffer.byteLength(html) / 1024).toFixed(1);
 const inCols = games.filter((g) => g.col).length;
 console.log(`built dist/index.html + dist/surd.html — ${games.length} games, ${kb} KB`);
 console.log(`  ${live.length} collections holding ${inCols} games -> grid shows ${games.length - inCols + live.length} cards`);
-console.log(`  ${games.filter((g) => g.pick).length} editorial picks`);
+console.log(`  ${games.filter((g) => g.pick).length} editorial picks, ${games.filter((g) => g.hero).length} heroes`);

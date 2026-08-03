@@ -280,6 +280,7 @@ kbd{
 #p-by{color:var(--dim);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #p-by a{color:var(--dim);text-decoration:none}
 #p-by a:hover{color:var(--acc)}
+#p-by .porter{color:var(--acc);opacity:.85}
 #p-frame{flex:1;width:100%;border:0;background:#000}
 
 @media (max-width:820px){

@@ -271,19 +271,27 @@
 
     $('#p-title').textContent = g.title;
 
-    // Credit the original developer — cheap goodwill, and it matters if one ever complains.
+    // Credit the original developer AND the porter. Getting a big engine game running
+    // in a browser is real work, and we neutralise the watermark links inside the games
+    // themselves — so the credit has to live here instead.
     var by = $('#p-by');
     by.textContent = '';
     if (g.author) {
+      by.appendChild(document.createTextNode('by '));
       if (g.authorLink) {
         var a = document.createElement('a');
         a.href = g.authorLink; a.target = '_blank'; a.rel = 'noopener noreferrer';
         a.textContent = g.author;
-        by.appendChild(document.createTextNode('by '));
         by.appendChild(a);
       } else {
-        by.textContent = 'by ' + g.author;
+        by.appendChild(document.createTextNode(g.author));
       }
+    }
+    if (g.porter) {
+      var sep = document.createElement('span');
+      sep.className = 'porter';
+      sep.textContent = (g.author ? ' · ' : '') + 'web port by ' + g.porter;
+      by.appendChild(sep);
     }
 
     $('#player').hidden = false;
@@ -329,6 +337,12 @@
     f.title = 'Game';
     f.setAttribute('allow', 'autoplay; fullscreen; gamepad; pointer-lock');
     f.setAttribute('allowfullscreen', '');
+    // Ported games often carry the porter's watermark and a link back to the site they
+    // were built for. The credit stays — it's earned — but the link shouldn't be able to
+    // navigate our users away. Omitting allow-top-navigation and allow-popups blocks that
+    // in the browser itself; allow-same-origin is kept so localStorage (game saves) works.
+    f.setAttribute('sandbox',
+      'allow-same-origin allow-scripts allow-forms allow-modals allow-pointer-lock allow-orientation-lock');
     old.parentNode.replaceChild(f, old);
     return f;
   }
@@ -395,10 +409,22 @@
   /* ---------- hero ---------- */
   var heroGame = null;
 
+  // Heroes are their own curated list — a headliner need not be in the Picks row.
   function pickHero() {
-    var pool = GAMES.filter(function (g) { return g.pick; });
+    var pool = GAMES.filter(function (g) { return g.hero; })
+      .sort(function (a, b) { return a.hero - b.hero; });
+    if (!pool.length) pool = GAMES.filter(function (g) { return g.pick; });
     if (!pool.length) pool = GAMES;
-    return pool[Math.floor(Math.random() * pool.length)] || null;
+    // rotate through them rather than repeating the same one every visit
+    var seen = get('heroIdx', -1) + 1;
+    if (seen >= pool.length) seen = 0;
+    set('heroIdx', seen);
+    return pool[seen] || null;
+  }
+
+  // "Random game" should stay random across the whole library, not the hero list.
+  function randomGame() {
+    return GAMES[Math.floor(Math.random() * GAMES.length)] || null;
   }
 
   function renderHero(g) {
@@ -423,7 +449,7 @@
   }
 
   $('#hero-play').onclick = function () { if (heroGame) play(heroGame); };
-  $('#hero-rand').onclick = function () { renderHero(pickHero()); };
+  $('#hero-rand').onclick = function () { renderHero(randomGame()); };
 
   /* ---------- tabs ---------- */
   Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
