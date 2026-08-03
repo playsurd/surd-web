@@ -104,7 +104,19 @@ content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
 background:linear-gradient(to right,
 rgba(8,8,10,.94) 0%, rgba(8,8,10,.9) 34%, rgba(8,8,10,.45) 62%, rgba(8,8,10,.1) 100%)
 }
-#hero-body{position:relative;z-index:3;max-width:min(640px,58%)}
+#hero-ring{
+position:absolute;inset:0;z-index:3;width:100%;height:100%;pointer-events:none
+}
+#hero-ring rect{
+fill:none;stroke:var(--acc);stroke-width:2;vector-effect:non-scaling-stroke;
+stroke-dasharray:1;stroke-dashoffset:1;
+animation:heroring var(--hero-ms,5000ms) linear forwards
+}
+#hero-ring.paused rect{animation-play-state:paused}
+#hero-ring.off{display:none}
+@keyframes heroring{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){#hero-ring{display:none}}
+#hero-body{position:relative;z-index:4;max-width:min(640px,58%)}
 #hero-title{
 margin:0 0 8px;font-size:clamp(28px,4.4vw,46px);line-height:1.03;
 font-weight:800;letter-spacing:-.035em
@@ -114,17 +126,6 @@ margin:0 0 20px;color:var(--dim);font-size:13.5px;
 font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:-.01em
 }
 #hero-actions{display:flex;gap:10px;flex-wrap:wrap}
-.hero-arrow{
-position:absolute;top:18px;z-index:4;
-width:34px;height:34px;display:grid;place-items:center;padding:0;cursor:pointer;
-background:rgba(8,8,10,.6);border:1px solid var(--line);color:var(--fg);
-transition:background .14s, border-color .14s, color .14s
-}
-.hero-arrow:hover{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
-.hero-arrow:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-.hero-arrow svg{width:18px;height:18px;display:block}
-#hero-prev{right:60px}
-#hero-next{right:18px}
 #hero-dots{display:flex;gap:6px;margin-top:12px}
 #hero-dots[hidden]{display:none}
 .dot{
@@ -142,11 +143,6 @@ height:4px;background:rgba(255,255,255,.28);transition:background .14s
 #hero-shot{display:none}
 #hero-body{max-width:100%}
 #hero::after{background:rgba(8,8,10,.8)}
-}
-@media (max-width:560px){
-.hero-arrow{top:14px}
-#hero-prev{right:52px}
-#hero-next{right:14px}
 }
 .btn.primary{
 background:var(--acc);border-color:var(--acc);color:var(--acc-ink);font-weight:700;
@@ -347,6 +343,9 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
     <div id="hero">
       <div id="hero-art"></div>
       <div id="hero-shot"></div>
+      <svg id="hero-ring" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <rect x="0" y="0" width="100" height="100" pathLength="1"></rect>
+      </svg>
       <div id="hero-body">
         <h1 id="hero-title"></h1>
         <p id="hero-meta"></p>
@@ -356,14 +355,6 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
         </div>
         <div id="hero-dots" role="tablist" aria-label="Featured games"></div>
       </div>
-      <button id="hero-prev" class="hero-arrow" aria-label="Previous featured game">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-             stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></svg>
-      </button>
-      <button id="hero-next" class="hero-arrow" aria-label="Next featured game">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-             stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
-      </button>
     </div>
 
     <div id="crumb" hidden>
@@ -770,6 +761,7 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
   var heroIdx = 0;
   var heroTimer = null;
   var HERO_MS = 5000;
+  document.documentElement.style.setProperty('--hero-ms', HERO_MS + 'ms');
   var HEROES = (function () {
     var pool = GAMES.filter(function (g) { return g.hero; })
       .sort(function (a, b) { return a.hero - b.hero; });
@@ -824,22 +816,39 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
       b.setAttribute('aria-current', i === heroIdx ? 'true' : 'false');
     });
   }
+  function restartRing() {
+    var ring = $('#hero-ring');
+    if (!ring) return;
+    var r = ring.firstElementChild;
+    ring.classList.toggle('off', HEROES.length < 2);
+    if (!r) return;
+    r.style.animation = 'none';
+    void r.getBoundingClientRect();
+    r.style.animation = '';
+  }
+  function ringPaused(on) {
+    var ring = $('#hero-ring');
+    if (ring) ring.classList.toggle('paused', !!on);
+  }
   function showHero(i, manual) {
     if (!HEROES.length) return;
     heroIdx = ((i % HEROES.length) + HEROES.length) % HEROES.length;
     paintHero(HEROES[heroIdx]);
     paintDots();
+    restartRing();
     if (manual) startHeroTimer();
   }
   function startHeroTimer() {
     stopHeroTimer();
     if (HEROES.length < 2) return;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    ringPaused(false);
     heroTimer = setInterval(function () { showHero(heroIdx + 1); }, HERO_MS);
   }
-  function stopHeroTimer() { if (heroTimer) { clearInterval(heroTimer); heroTimer = null; } }
-  $('#hero-prev').onclick = function () { showHero(heroIdx - 1, true); };
-  $('#hero-next').onclick = function () { showHero(heroIdx + 1, true); };
+  function stopHeroTimer() {
+    if (heroTimer) { clearInterval(heroTimer); heroTimer = null; }
+    ringPaused(true);
+  }
   $('#hero').addEventListener('mouseenter', stopHeroTimer);
   $('#hero').addEventListener('mouseleave', function () {
     if (!$('#player').hidden) return;

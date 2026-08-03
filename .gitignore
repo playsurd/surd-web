@@ -1,0 +1,18 @@
+# the public repo is the built site and nothing else
+src/
+scripts/
+data/
+tools/
+mirror
+mirror/
+dist/
+.publish/
+node_modules/
+
+# secrets
+.gh_token
+*.token
+.env
+
+# internal notes
+README.internal.md
