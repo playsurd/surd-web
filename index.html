@@ -108,11 +108,14 @@ rgba(8,8,10,.94) 0%, rgba(8,8,10,.9) 34%, rgba(8,8,10,.45) 62%, rgba(8,8,10,.1) 
 position:absolute;top:-1px;left:-1px;right:-1px;height:2px;z-index:3;
 background:var(--acc);pointer-events:none;
 transform:scaleX(0);transform-origin:left center;
-animation:herobar var(--hero-ms,12000ms) linear forwards
+animation:herobar var(--hero-ms,12000ms) linear forwards;
+transition:opacity .18s ease, filter .18s ease
 }
-#hero-bar.paused{animation-play-state:paused}
+#hero-bar.paused{animation-play-state:paused;opacity:.35;filter:saturate(.4)}
+#hero-bar.rewind{animation:herobar-rewind var(--hero-rewind,260ms) cubic-bezier(.4,0,1,1) forwards}
 #hero-bar.off{display:none}
 @keyframes herobar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes herobar-rewind{from{transform:scaleX(var(--at,1))}to{transform:scaleX(0)}}
 @media (prefers-reduced-motion:reduce){#hero-bar{display:none}}
 #hero-art,#hero-shot,#hero-body{transition:opacity .26s ease}
 #hero.swap #hero-art,#hero.swap #hero-shot,#hero.swap #hero-body{opacity:0}
@@ -818,15 +821,30 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
     var bar = $('#hero-bar');
     if (!bar) return;
     bar.classList.toggle('off', HEROES.length < 2);
+    bar.classList.remove('rewind');
     bar.style.animation = 'none';
     void bar.getBoundingClientRect();
     bar.style.animation = '';
+  }
+  function rewindBar() {
+    var bar = $('#hero-bar');
+    if (!bar) return;
+    var at = 1;
+    var m = /matrix\(\s*([-\d.]+)/.exec(getComputedStyle(bar).transform || '');
+    if (m) at = Math.max(0, Math.min(1, parseFloat(m[1])));
+    bar.style.setProperty('--at', at);
+    bar.classList.remove('rewind');
+    bar.style.animation = 'none';
+    void bar.getBoundingClientRect();
+    bar.style.animation = '';
+    bar.classList.add('rewind');
   }
   function ringPaused(on) {
     var bar = $('#hero-bar');
     if (bar) bar.classList.toggle('paused', !!on);
   }
   var FADE_MS = 260;
+  document.documentElement.style.setProperty('--hero-rewind', FADE_MS + 'ms');
   var swapTimer = null;
   function showHero(i, manual, instant) {
     if (!HEROES.length) return;
@@ -840,6 +858,7 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
       return;
     }
     hero.classList.add('swap');
+    rewindBar();
     swapTimer = setTimeout(function () {
       paintHero(g);
       paintDots();
