@@ -1660,6 +1660,18 @@
       "verdict": "clean"
     },
     {
+      "id": "crossy-road",
+      "title": "Crossy Road",
+      "tags": [],
+      "src": "{A}/crossy-road/index.html",
+      "cover": "{C}/crossy-road.png",
+      "author": "Hipster Whale",
+      "authorLink": "https://www.hipsterwhale.com",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "errors"
+    },
+    {
       "id": "cruelty-squad",
       "title": "Cruelty Squad",
       "tags": [
@@ -1772,6 +1784,20 @@
       "verdict": "clean"
     },
     {
+      "id": "dead-plate",
+      "title": "DEAD PLATE",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/dead-plate/index.html",
+      "cover": "{C}/dead-plate.png",
+      "author": "racheldrawsthis",
+      "authorLink": "https://racheldrawsthis.itch.io/dead-plate",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "errors"
+    },
+    {
       "id": "death-run-3d",
       "title": "Death Run 3D",
       "tags": [],
@@ -1834,6 +1860,20 @@
       "verdict": "clean"
     },
     {
+      "id": "dice-a-million",
+      "title": "Dice a Million",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/dice-a-million/index.html",
+      "cover": "{C}/dice-a-million.png",
+      "author": "countlessnights, 2 Left Thumbs, NotRexed",
+      "authorLink": "https://store.steampowered.com/app/3430340/Dice_A_Million/",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "errors"
+    },
+    {
       "id": "dig-deep",
       "title": "Dig Deep",
       "tags": [],
@@ -1844,6 +1884,32 @@
       "verified": "2026-08-03",
       "chromebook": true,
       "verdict": "errors"
+    },
+    {
+      "id": "dimension-incident",
+      "title": "Dimension Incident",
+      "tags": [],
+      "src": "{A}/dimension-incident/index.html",
+      "cover": "{C}/dimension-incident.png",
+      "author": "biznesbear",
+      "authorLink": "https://biznesbear.itch.io/dimensionincident",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "do-not-take-this-cat-home",
+      "title": "Do NOT Take This Cat Home",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/do-not-take-this-cat-home/index.html",
+      "cover": "{C}/do-not-take-this-cat-home.png",
+      "author": "Pixelliminal",
+      "authorLink": "https://pixeliminal.itch.io/do-not-take-this-cat-home",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
     },
     {
       "id": "doge-miner",
@@ -2230,6 +2296,20 @@
       "verdict": "clean"
     },
     {
+      "id": "fancy-pants-adventure-4-part-1",
+      "title": "Fancy Pants Adventure 4 Part 1",
+      "tags": [
+        "flash"
+      ],
+      "src": "{A}/fancy-pants-adventure-4-part-1/index.html",
+      "cover": "{C}/fancy-pants-adventure-4-part-1.png",
+      "author": "Brad Borne",
+      "authorLink": "https://www.bornegames.com",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
       "id": "fancy-pants-adventure-4-part-2",
       "title": "Fancy Pants Adventure 4 Part 2",
       "tags": [
@@ -2263,6 +2343,34 @@
       "cover": "{C}/fear-assessment.png",
       "author": "Alexander Wiseman",
       "authorLink": "https://alexander-wiseman.itch.io/fear-assessment",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "errors"
+    },
+    {
+      "id": "fears-to-fathom-home-alone",
+      "title": "Fears to Fathom: Home Alone",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/fears-to-fathom-home-alone/index.html",
+      "cover": "{C}/fears-to-fathom-home-alone.png",
+      "author": "Rayll",
+      "authorLink": "https://store.steampowered.com/app/1671340/Fears_to_Fathom__Home_Alone",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "fih",
+      "title": "Fih",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/fih/index.html",
+      "cover": "{C}/fih.png",
+      "author": "starrymari",
+      "authorLink": "https://starrymari.itch.io/fih",
       "verified": "2026-08-03",
       "chromebook": true,
       "verdict": "errors"
@@ -2344,6 +2452,20 @@
       "verdict": "errors"
     },
     {
+      "id": "fish",
+      "title": "FISH",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/fish/index.html",
+      "cover": "{C}/fish.png",
+      "author": "dmcaguy",
+      "authorLink": "https://dmcaguy.itch.io/fish",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
       "id": "fitness-empire",
       "title": "Fitness Empire",
       "tags": [],
@@ -2384,6 +2506,76 @@
       "verdict": "clean"
     },
     {
+      "id": "five-nights-at-freddys",
+      "title": "Five Nights at Freddy's",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/five-nights-at-freddys/index.html",
+      "cover": "{C}/five-nights-at-freddys.png",
+      "author": "Scott Cawthon",
+      "authorLink": "https://scottgames.com",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "five-nights-at-freddys-2",
+      "title": "Five Nights at Freddy's 2",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/five-nights-at-freddys-2/index.html",
+      "cover": "{C}/five-nights-at-freddys-2.png",
+      "author": "Scott Cawthon",
+      "authorLink": "https://scottgames.com",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "five-nights-at-freddys-3",
+      "title": "Five Nights at Freddy's 3",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/five-nights-at-freddys-3/index.html",
+      "cover": "{C}/five-nights-at-freddys-3.png",
+      "author": "Scott Cawthon",
+      "authorLink": "https://scottgames.com",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "five-nights-at-freddys-4",
+      "title": "Five Nights at Freddy's 4",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/five-nights-at-freddys-4/index.html",
+      "cover": "{C}/five-nights-at-freddys-4.png",
+      "author": "Scott Cawthon",
+      "authorLink": "https://scottgames.com",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "five-nights-at-freddys-4-halloween",
+      "title": "Five Nights at Freddy's 4: Halloween",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/five-nights-at-freddys-4-halloween/index.html",
+      "cover": "{C}/five-nights-at-freddys-4-halloween.png",
+      "author": "Scott Cawthon",
+      "authorLink": "https://scottgames.com",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
       "id": "five-nights-at-freddys-pizza-simulator",
       "title": "Five Nights at Freddy's: Pizza Simulator",
       "tags": [
@@ -2391,6 +2583,20 @@
       ],
       "src": "{A}/five-nights-at-freddys-pizza-simulator/index.html",
       "cover": "{C}/five-nights-at-freddys-pizza-simulator.png",
+      "author": "Scott Cawthon",
+      "authorLink": "https://scottgames.com",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "five-nights-at-freddys-world",
+      "title": "Five Nights at Freddy's: World",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/five-nights-at-freddys-world/index.html",
+      "cover": "{C}/five-nights-at-freddys-world.png",
       "author": "Scott Cawthon",
       "authorLink": "https://scottgames.com",
       "verified": "2026-08-03",
@@ -2862,6 +3068,20 @@
       "verdict": "clean"
     },
     {
+      "id": "friday-night-funkin-vs-impostor-v4",
+      "title": "Friday Night Funkin VS Impostor v4",
+      "tags": [
+        "fnf"
+      ],
+      "src": "{A}/friday-night-funkin-vs-impostor-v4/index.html",
+      "cover": "{C}/friday-night-funkin-vs-impostor-v4.png",
+      "author": "Imposter v4 team",
+      "authorLink": "https://gamebanana.com/mods/55652",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
       "id": "friday-night-funkin-vs-kapi",
       "title": "Friday Night Funkin VS. KAPI",
       "tags": [],
@@ -2933,6 +3153,20 @@
       "cover": "{C}/friday-night-funkin-vs-sky.png",
       "author": "Alexander0110 etc",
       "authorLink": "https://gamebanana.com/mods/44555",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "friday-night-funkin-vs-tabi",
+      "title": "Friday Night Funkin vs Tabi",
+      "tags": [
+        "fnf"
+      ],
+      "src": "{A}/friday-night-funkin-vs-tabi/index.html",
+      "cover": "{C}/friday-night-funkin-vs-tabi.png",
+      "author": "SangMareZG",
+      "authorLink": "https://gamebanana.com/mods/587524",
       "verified": "2026-08-03",
       "chromebook": true,
       "verdict": "clean"
@@ -3011,6 +3245,20 @@
       "cover": "{C}/fused-240.png",
       "author": "Mike Klubnika, shxyder",
       "authorLink": "https://mikeklubnika.itch.io/fused-240",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "errors"
+    },
+    {
+      "id": "gabriels-awesome-schoolhouse-gash",
+      "title": "Gabriel's Awesome Schoolhouse (GASH)",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/gabriels-awesome-schoolhouse-gash/index.html",
+      "cover": "{C}/gabriels-awesome-schoolhouse-gash.png",
+      "author": "Gabriel115GJ",
+      "authorLink": "https://gamejolt.com/games/GASH/877557",
       "verified": "2026-08-03",
       "chromebook": true,
       "verdict": "errors"
@@ -3269,6 +3517,20 @@
       ],
       "src": "{A}/half-life/index.html",
       "cover": "{C}/half-life.png",
+      "author": "Valve",
+      "authorLink": "https://www.valvesoftware.com/en/",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "half-life-opposing-force",
+      "title": "Half Life: Opposing Force",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/half-life-opposing-force/index.html",
+      "cover": "{C}/half-life-opposing-force.png",
       "author": "Valve",
       "authorLink": "https://www.valvesoftware.com/en/",
       "verified": "2026-08-03",
@@ -4264,6 +4526,20 @@
       "verdict": "clean"
     },
     {
+      "id": "minecraft-pocket-edition",
+      "title": "Minecraft Pocket Edition",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/minecraft-pocket-edition/index.html",
+      "cover": "{C}/minecraft-pocket-edition.png",
+      "author": "Mojang",
+      "authorLink": "https://mojang.com",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "errors"
+    },
+    {
       "id": "minesweeper-mania",
       "title": "Minesweeper Mania",
       "tags": [],
@@ -5000,6 +5276,20 @@
       "verified": "2026-08-03",
       "chromebook": true,
       "verdict": "clean"
+    },
+    {
+      "id": "plants-vs-zombies-goty-edition",
+      "title": "Plants vs. Zombies GOTY Edition",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/plants-vs-zombies-goty-edition/index.html",
+      "cover": "{C}/plants-vs-zombies-goty-edition.png",
+      "author": "PopCap Games",
+      "authorLink": "https://nintendo.com",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "errors"
     },
     {
       "id": "please-dont-touch-anything",
@@ -5916,6 +6206,34 @@
       "verdict": "errors"
     },
     {
+      "id": "slendytubbies-2",
+      "title": "Slendytubbies 2",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/slendytubbies-2/index.html",
+      "cover": "{C}/slendytubbies-2.png",
+      "author": "Sean Toman",
+      "authorLink": "https://www.zeoworks.com/",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "errors"
+    },
+    {
+      "id": "slendytubbies-2d",
+      "title": "Slendytubbies 2D",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/slendytubbies-2d/index.html",
+      "cover": "{C}/slendytubbies-2d.png",
+      "author": "Sean Toman",
+      "authorLink": "https://www.zeoworks.com/",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
       "id": "slice-it-all",
       "title": "Slice it All",
       "tags": [],
@@ -5935,6 +6253,18 @@
       "cover": "{C}/slime-io.png",
       "author": "GameSnacks",
       "authorLink": "https://gamesnacks.com/games/slime-io",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "slither-io",
+      "title": "Slither.io",
+      "tags": [],
+      "src": "{A}/slither-io/index.html",
+      "cover": "{C}/slither-io.png",
+      "author": "slither.io",
+      "authorLink": "http://slither.com/io",
       "verified": "2026-08-03",
       "chromebook": true,
       "verdict": "clean"
@@ -6328,6 +6658,17 @@
       "verdict": "clean"
     },
     {
+      "id": "stickman-duel",
+      "title": "Stickman Duel",
+      "tags": [],
+      "src": "{A}/stickman-duel/index.html",
+      "cover": "{C}/stickman-duel.png",
+      "author": "unknown",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "errors"
+    },
+    {
       "id": "stickman-hook",
       "title": "Stickman Hook",
       "tags": [],
@@ -6362,6 +6703,17 @@
       "verified": "2026-08-03",
       "chromebook": true,
       "verdict": "clean"
+    },
+    {
+      "id": "suika-game",
+      "title": "Suika Game",
+      "tags": [],
+      "src": "{A}/suika-game/index.html",
+      "cover": "{C}/suika-game.png",
+      "author": "unknown",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "errors"
     },
     {
       "id": "super-mario-63",
@@ -7577,6 +7929,20 @@
       "cover": "{C}/worst-time-simulator.png",
       "author": "omegafredo",
       "authorLink": "https://omegafredo.github.io/worst-time-simulator/",
+      "verified": "2026-08-03",
+      "chromebook": true,
+      "verdict": "clean"
+    },
+    {
+      "id": "yandere-simulator",
+      "title": "Yandere Simulator",
+      "tags": [
+        "port"
+      ],
+      "src": "{A}/yandere-simulator/index.html",
+      "cover": "{C}/yandere-simulator.png",
+      "author": "YandereDev",
+      "authorLink": "https://yanderesimulator.com/",
       "verified": "2026-08-03",
       "chromebook": true,
       "verdict": "clean"
