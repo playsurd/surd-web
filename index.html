@@ -243,13 +243,16 @@ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hi
 }
 .card.noart img{display:none}
 .card.noart .t{background:rgba(0,0,0,.5);padding-top:10px}
-.card .fav{
-position:absolute;top:8px;right:8px;z-index:3;width:28px;height:28px;border:0;
+.card .fav,.card .rm{
+position:absolute;top:8px;z-index:3;width:28px;height:28px;border:0;
 background:rgba(10,10,12,.72);backdrop-filter:blur(6px);
 color:#fff;font-size:14px;line-height:1;cursor:pointer;opacity:0;transition:opacity .13s
 }
-.card:hover .fav,.card .fav.on{opacity:1}
+.card .fav{right:8px}
+.card .rm{left:8px;font-size:18px}
+.card:hover .fav,.card .fav.on,.card:hover .rm{opacity:1}
 .card .fav.on{color:var(--acc)}
+.card .rm:hover{color:#ff5c5c}
 .card.col{
 border:2px dashed rgba(194,240,74,.45);
 }
@@ -528,7 +531,7 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
     return m && m[1].length > 2 ? m[1] : title;
   }
   var eagerBudget = 0;
-  function card(g, colTitle) {
+  function card(g, colTitle, removable) {
     var el = document.createElement('button');
     el.className = 'card noart';
     el.setAttribute('role', 'listitem');
@@ -552,8 +555,22 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
     f.title = 'Favorite';
     f.onclick = function (e) { e.stopPropagation(); toggleFav(g.id); };
     el.appendChild(img); el.appendChild(t); el.appendChild(f);
+    if (removable) {
+      var x = document.createElement('button');
+      x.className = 'rm';
+      x.innerHTML = '&times;';
+      x.title = 'Remove from recent';
+      x.setAttribute('aria-label', 'Remove ' + g.title + ' from recently played');
+      x.onclick = function (e) { e.stopPropagation(); dropRecent(g.id); };
+      el.appendChild(x);
+    }
     el.onclick = function () { play(g); };
     return el;
+  }
+  function dropRecent(id) {
+    recents = recents.filter(function (x) { return x !== id; });
+    set('recents', recents);
+    renderGrid();
   }
   function colCard(c) {
     var members = inCol(c.id);
@@ -583,13 +600,13 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
     el.onclick = function () { openCol = c.id; renderGrid(); window.scrollTo(0, 0); };
     return el;
   }
-  function section(title, list, grid) {
+  function section(title, list, grid, removable) {
     if (!list.length) return;
     var h = document.createElement('h2');
     h.textContent = title;
     h.style.gridColumn = '1/-1';
     grid.appendChild(h);
-    list.forEach(function (g) { grid.appendChild(card(g)); });
+    list.forEach(function (g) { grid.appendChild(card(g, null, removable)); });
   }
   function byId(id) {
     for (var i = 0; i < GAMES.length; i++) if (GAMES[i].id === id) return GAMES[i];
@@ -620,7 +637,7 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
     }
     $('#empty').hidden = true;
     section('Favorites', favs.map(byId).filter(Boolean), grid);
-    section('Recent', recents.map(byId).filter(Boolean).slice(0, 8), grid);
+    section('Recent', recents.map(byId).filter(Boolean).slice(0, 8), grid, true);
     var picks = GAMES.filter(function (g) { return g.pick; });
     section('Picks', picks, grid);
     var rest = [];
@@ -761,6 +778,7 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
   var heroGame = null;
   var heroIdx = 0;
   var heroRunning = false;
+  var heroHover = false;
   var HERO_MS = 12000;
   document.documentElement.style.setProperty('--hero-ms', HERO_MS + 'ms');
   var HEROES = (function () {
@@ -868,11 +886,14 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
       swapTimer = null;
     }, FADE_MS);
   }
+  function heroBlocked() {
+    return heroHover || !$('#player').hidden || $('#hero').style.display === 'none';
+  }
   function startHeroTimer() {
     if (HEROES.length < 2) return;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     heroRunning = true;
-    ringPaused(false);
+    ringPaused(heroBlocked());
   }
   function stopHeroTimer() {
     heroRunning = false;
@@ -887,10 +908,13 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
       showHero(heroIdx + 1);
     });
   })();
-  $('#hero').addEventListener('mouseenter', stopHeroTimer);
+  $('#hero').addEventListener('mouseenter', function () {
+    heroHover = true;
+    ringPaused(true);
+  });
   $('#hero').addEventListener('mouseleave', function () {
-    if (!$('#player').hidden) return;
-    if ($('#hero').style.display !== 'none') startHeroTimer();
+    heroHover = false;
+    if (heroRunning && !heroBlocked()) ringPaused(false);
   });
   $('#hero-play').onclick = function () { if (heroGame) play(heroGame); };
   $('#hero-rand').onclick = function () { stopHeroTimer(); paintHero(randomGame()); };
