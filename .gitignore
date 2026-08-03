@@ -49,3 +49,5 @@ scripts/prune.mjs
 data/dropped.json
 data/keep-encfix.txt
 data/keep-ruffle-fix.txt
+scripts/clean-ads.mjs
+data/keep-sweep.txt
