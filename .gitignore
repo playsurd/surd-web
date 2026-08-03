@@ -45,3 +45,7 @@ data/big-games.json
 data/cdn.generated.json
 data/webporting.json
 .publish/
+scripts/prune.mjs
+data/dropped.json
+data/keep-encfix.txt
+data/keep-ruffle-fix.txt
