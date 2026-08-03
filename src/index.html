@@ -35,6 +35,7 @@
   <section id="view-games" class="view on">
     <div id="hero">
       <div id="hero-art"></div>
+      <div id="hero-shot"></div>
       <div id="hero-body">
         <h1 id="hero-title"></h1>
         <p id="hero-meta"></p>
@@ -110,7 +111,26 @@
   </section>
 </main>
 
-<footer id="foot"><span id="foot-count"></span></footer>
+<footer id="foot">
+  <span id="foot-count"></span>
+  <nav id="foot-links">
+    <button class="flink" data-doc="dmca">DMCA</button>
+    <button class="flink" data-doc="privacy">Privacy</button>
+    <a class="flink" id="foot-discord" target="_blank" rel="noopener noreferrer" hidden>Discord</a>
+    <a class="flink" id="foot-github" target="_blank" rel="noopener noreferrer" hidden>GitHub</a>
+    <a class="flink" id="foot-contact" hidden>Contact</a>
+  </nav>
+</footer>
+
+<div id="doc" hidden>
+  <div id="doc-panel" role="dialog" aria-modal="true" aria-labelledby="doc-title">
+    <div id="doc-head">
+      <strong id="doc-title"></strong>
+      <button id="doc-close" class="btn" aria-label="Close">&times;</button>
+    </div>
+    <div id="doc-body"></div>
+  </div>
+</div>
 
 <div id="player" hidden>
   <div id="player-bar">

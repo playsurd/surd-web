@@ -20,6 +20,7 @@ const build = new Date().toISOString().slice(0, 10);
 const { games } = JSON.parse(read('data/games.json'));
 const cdn = JSON.parse(read('data/cdn.json'));
 const { collections } = JSON.parse(read('data/collections.json'));
+const site = existsSync(p('data/site.json')) ? JSON.parse(read('data/site.json')) : {};
 
 // Assign each game to a series collection, so one card can stand for a 50-entry mod series.
 // A game keeps its own identity — the collection is just how the grid groups it.
@@ -40,6 +41,24 @@ for (const g of games) {
   const tier = riskSet.has(g.id) ? (bigSet.has(g.id) ? 'Y' : 'X')
                                  : (bigSet.has(g.id) ? 'B' : 'A');
   g.src = String(g.src).replace(/^\{[A-Z]\}/, `{${tier}}`);
+}
+
+/* Point each cover at the file that actually exists.
+ * The manifest was written with ".png" while mirror-covers --webp produces ".webp",
+ * so every cover 404'd. Never assume an extension we can just look up.
+ */
+let coverFixed = 0, coverMissing = 0;
+for (const g of games) {
+  const webp = p(join('mirror', '_covers', g.id + '.webp'));
+  const png = p(join('mirror', '_covers', g.id + '.png'));
+  if (existsSync(webp)) {
+    if (!/\.webp$/.test(g.cover)) coverFixed++;
+    g.cover = '{C}/' + g.id + '.webp';
+  } else if (existsSync(png)) {
+    g.cover = '{C}/' + g.id + '.png';
+  } else {
+    coverMissing++;
+  }
 }
 
 const cols = collections.map((c) => ({ ...c, re: new RegExp(c.match, 'i'), n: 0 }));
@@ -129,6 +148,7 @@ const html = read('src/index.html')
     `window.SURD_GAMES=${JSON.stringify(slim)};` +
     `window.SURD_COLS=${JSON.stringify(colMeta)};` +
     `window.SURD_CDN=${JSON.stringify(bases)};` +
+    `window.SURD_SITE=${JSON.stringify({ contact: site.contact || '', discord: site.discord || '', github: site.github || '', tagline: site.tagline || '' })};` +
     `window.SURD_BUILD=${JSON.stringify(build)};`)
   .replace('/*APP*/', () => stripJsComments(read('src/app.js')))
   .replace(/<!--[\s\S]*?-->/g, '');
@@ -142,3 +162,4 @@ const inCols = games.filter((g) => g.col).length;
 console.log(`built dist/index.html + dist/surd.html — ${games.length} games, ${kb} KB`);
 console.log(`  ${live.length} collections holding ${inCols} games -> grid shows ${games.length - inCols + live.length} cards`);
 console.log(`  ${games.filter((g) => g.pick).length} editorial picks, ${games.filter((g) => g.hero).length} heroes`);
+console.log(`  covers: ${coverFixed} extensions corrected, ${coverMissing} missing`);

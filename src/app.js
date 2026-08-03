@@ -112,6 +112,8 @@
     return m && m[1].length > 2 ? m[1] : title;
   }
 
+  var eagerBudget = 0;
+
   function card(g, colTitle) {
     var el = document.createElement('button');
     el.className = 'card noart';
@@ -125,7 +127,9 @@
     el.appendChild(ini);
 
     var img = document.createElement('img');
-    img.loading = 'lazy';
+    // With 600+ lazy images the browser defers nearly all of them and the first screen
+    // paints empty. Load the first rows eagerly; everything below stays lazy.
+    img.loading = eagerBudget-- > 0 ? 'eager' : 'lazy';
     img.decoding = 'async';
     img.alt = '';
     if (g.cover) coverFallback(img, g.cover, Math.min(mirror, (CDN.C || []).length - 1), el);
@@ -160,7 +164,8 @@
     el.appendChild(ini);
 
     var img = document.createElement('img');
-    img.loading = 'lazy'; img.decoding = 'async'; img.alt = '';
+    img.loading = eagerBudget-- > 0 ? 'eager' : 'lazy';
+    img.decoding = 'async'; img.alt = '';
     if (face && face.cover) coverFallback(img, face.cover, 0, el);
 
     var t = document.createElement('div');
@@ -197,6 +202,7 @@
   function renderGrid() {
     var grid = $('#grid');
     grid.textContent = '';
+    eagerBudget = 30;
     $('#crumb').hidden = true;
     // The hero is a front-page thing — it has no business sitting above search results.
     var heroHidden = !!(query || tag || openCol);
@@ -435,11 +441,19 @@
     art.style.background = tint(g.id);
     art.textContent = '';
 
+    var shot = $('#hero-shot');
+    shot.textContent = '';
+
     if (g.cover) {
       var img = document.createElement('img');
       img.alt = ''; img.decoding = 'async';
       coverFallback(img, g.cover, 0);
       art.appendChild(img);
+
+      var sharp = document.createElement('img');
+      sharp.alt = ''; sharp.decoding = 'async';
+      coverFallback(sharp, g.cover, 0);
+      shot.appendChild(sharp);
     }
 
     $('#hero-title').textContent = g.title;
@@ -634,6 +648,60 @@
     if (e.key === '/' && !typing) { e.preventDefault(); $('#q').focus(); }
   };
 
+  /* ---------- footer + legal ---------- */
+  var SITE = window.SURD_SITE || {};
+
+  var DOCS = {
+    dmca: {
+      title: 'DMCA / takedown',
+      html: '<p>If you hold the rights to something hosted here and want it removed, email ' +
+        '<b>{CONTACT}</b> and it will be taken down. No form, no lawyer required.</p>' +
+        '<p>Please include the title as it appears on this site, and a line confirming you ' +
+        'represent the rights holder. Removals are usually done the same day.</p>' +
+        '<p>Games are community web ports. Where a porter is known they are credited on the ' +
+        'game screen alongside the original developer.</p>'
+    },
+    privacy: {
+      title: 'Privacy',
+      html: '<p>There are no accounts, no analytics, no trackers and no cookies. ' +
+        'Nothing you do here is sent to a server we control.</p>' +
+        '<p>Favourites, recently played, settings and game saves live in your browser\'s ' +
+        'local storage on this device only. Clearing site data in Settings erases all of it.</p>' +
+        '<p>Games are fetched from public file hosts, which see the request the same way any ' +
+        'website does. Individual games may store their own progress locally.</p>'
+    }
+  };
+
+  function openDoc(k) {
+    var d = DOCS[k];
+    if (!d) return;
+    $('#doc-title').textContent = d.title;
+    $('#doc-body').innerHTML = d.html.replace(/\{CONTACT\}/g, SITE.contact || 'the site owner');
+    $('#doc').hidden = false;
+  }
+  function closeDoc() { $('#doc').hidden = true; }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.flink[data-doc]'), function (b) {
+    b.onclick = function () { openDoc(b.dataset.doc); };
+  });
+  $('#doc-close').onclick = closeDoc;
+  $('#doc').onclick = function (e) { if (e.target === $('#doc')) closeDoc(); };
+
+  (function () {
+    // Hide any link we don't actually have, so no dead entry ever ships.
+    // Null-guarded: a variant build may ship a different footer, and one missing
+    // element must never throw and take the whole app down with it.
+    function link(sel, href) {
+      var el = $(sel);
+      if (!el || !href) return;
+      el.href = href;
+      el.hidden = false;
+    }
+    link('#foot-discord', SITE.discord);
+    link('#foot-github', SITE.github);
+    link('#foot-contact', SITE.contact ? 'mailto:' + SITE.contact : '');
+  })();
+
   /* ---------- go ---------- */
   applyCloak();
   showHero(0);
@@ -641,6 +709,7 @@
   renderTags();
   renderGrid();
   $('#build').textContent = GAMES.length + ' games · build ' + (window.SURD_BUILD || 'dev');
-  $('#foot-count').textContent = GAMES.length + ' games · ' + COLS.length + ' series · no ads · no tracking';
+  $('#foot-count').textContent = GAMES.length + ' games · ' + COLS.length + ' series' +
+    (SITE.tagline ? ' · ' + SITE.tagline : '');
   $('#q').placeholder = 'Search ' + GAMES.length + ' games';
 })();
