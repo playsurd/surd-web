@@ -51,3 +51,6 @@ data/keep-encfix.txt
 data/keep-ruffle-fix.txt
 scripts/clean-ads.mjs
 data/keep-sweep.txt
+scripts/make-picks.mjs
+scripts/apply-picks.mjs
+data/picks.txt
