@@ -436,4 +436,5 @@
   renderGrid();
   $('#build').textContent = GAMES.length + ' games · build ' + (window.SURD_BUILD || 'dev');
   $('#foot-count').textContent = GAMES.length + ' games · ' + COLS.length + ' series · no ads · no tracking';
+  $('#q').placeholder = 'Search ' + GAMES.length + ' games';
 })();

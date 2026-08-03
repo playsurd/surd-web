@@ -11,12 +11,23 @@
 <body>
 
 <header id="bar">
-  <div class="brand" title="Surd">surd</div>
-  <nav id="tabs">
-    <button class="tab on" data-tab="games">Games</button>
-    <button class="tab" data-tab="settings">Settings</button>
-  </nav>
-  <input id="q" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-label="Search games">
+  <div id="bar-left">
+    <div class="brand" title="Surd">surd</div>
+    <nav id="tabs">
+      <button class="tab on" data-tab="games">Games</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+  </div>
+  <div id="search">
+    <svg id="search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9"
+         stroke-linecap="round" aria-hidden="true">
+      <circle cx="9" cy="9" r="6"/><path d="m13.5 13.5 3.5 3.5"/>
+    </svg>
+    <input id="q" type="search" placeholder="Search games" autocomplete="off" spellcheck="false"
+           aria-label="Search games">
+    <kbd id="search-key">/</kbd>
+  </div>
+  <div id="bar-end"></div>
 </header>
 
 <main>
