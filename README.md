@@ -1,6 +1,6 @@
 # surd
 
-fast unblocked games. one page, no ads, no tracking, nothing to install.
+fast unblocked games. one page, nothing to install.
 
 every game here has been opened in a real browser and checked that it actually
 starts — no dead links, no black screens.

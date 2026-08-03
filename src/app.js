@@ -663,12 +663,11 @@
     },
     privacy: {
       title: 'Privacy',
-      html: '<p>There are no accounts, no analytics, no trackers and no cookies. ' +
-        'Nothing you do here is sent to a server we control.</p>' +
-        '<p>Favourites, recently played, settings and game saves live in your browser\'s ' +
-        'local storage on this device only. Clearing site data in Settings erases all of it.</p>' +
-        '<p>Games are fetched from public file hosts, which see the request the same way any ' +
-        'website does. Individual games may store their own progress locally.</p>'
+      html: '<p>There are no accounts. Favourites, recently played, settings and game ' +
+        'saves are kept in your browser\'s local storage on this device — clearing site ' +
+        'data in Settings erases all of it.</p>' +
+        '<p>Games are fetched from public file hosts, which see the request the same way ' +
+        'any website does. Individual games may store their own progress locally.</p>'
     }
   };
 
