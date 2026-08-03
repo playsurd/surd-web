@@ -1,0 +1,32 @@
+{
+  "$schema": "./games.schema.json",
+  "games": [
+    {
+      "id": "slope",
+      "title": "Slope",
+      "tags": ["arcade", "3d", "endless"],
+      "src": "https://cdn.jsdelivr.net/gh/playsurd/surd-assets@main/slope/index.html",
+      "cover": "https://cdn.jsdelivr.net/gh/playsurd/surd-covers@main/slope.webp",
+      "verified": "2026-08-02",
+      "chromebook": true
+    },
+    {
+      "id": "1v1lol",
+      "title": "1v1.LOL",
+      "tags": ["shooter", "multiplayer", "3d"],
+      "src": "https://cdn.jsdelivr.net/gh/playsurd/surd-assets@main/1v1lol/index.html",
+      "cover": "https://cdn.jsdelivr.net/gh/playsurd/surd-covers@main/1v1lol.webp",
+      "verified": "2026-08-02",
+      "chromebook": true
+    },
+    {
+      "id": "retrobowl",
+      "title": "Retro Bowl",
+      "tags": ["sports", "pixel"],
+      "src": "https://cdn.jsdelivr.net/gh/playsurd/surd-assets@main/retrobowl/index.html",
+      "cover": "https://cdn.jsdelivr.net/gh/playsurd/surd-covers@main/retrobowl.webp",
+      "verified": "2026-08-02",
+      "chromebook": true
+    }
+  ]
+}

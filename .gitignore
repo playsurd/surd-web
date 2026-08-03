@@ -1,0 +1,13 @@
+# secrets — never commit
+.gh_token
+*.token
+.env
+
+# build output (deployed, not committed to the source repo)
+dist/
+
+node_modules/
+.DS_Store
+
+# internal notes — never commit
+README.internal.md
