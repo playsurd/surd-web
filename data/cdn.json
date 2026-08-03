@@ -1,16 +1,28 @@
 {
-  "_comment": "Ordered asset bases per tier. {A} = main library, {X} = high-risk tier (paid-publisher ports) kept in its OWN repo so a takedown there cannot break the rest of the library, {C} = covers. Never bake absolute URLs into games.json — swapping a base here must never require a rebuild. Covers fall through automatically; users can also pick a mirror in Settings.",
+  "_comment": "Ordered asset bases per tier. Two orthogonal axes: RISK (main vs high-risk, which decides the repo) and SIZE (jsDelivr hard-403s any file over 20 MB — 'File size exceeded the configured limit of 20 MB' — so those games must lead with raw.githubusercontent, which serves up to 100 MB). {A} main, {B} main+big, {X} high-risk (own repo so a takedown can't break the rest), {Y} high-risk+big, {C} covers, {R} shared runtimes. Never bake absolute URLs into games.json: swapping a base must never require a rebuild.",
 
   "A": [
     "https://cdn.jsdelivr.net/gh/playsurd/surd-assets@main",
     "https://raw.githubusercontent.com/playsurd/surd-assets/main"
   ],
+  "B": [
+    "https://raw.githubusercontent.com/playsurd/surd-assets/main",
+    "https://cdn.jsdelivr.net/gh/playsurd/surd-assets@main"
+  ],
   "X": [
     "https://cdn.jsdelivr.net/gh/playsurd/surd-x@main",
     "https://raw.githubusercontent.com/playsurd/surd-x/main"
   ],
+  "Y": [
+    "https://raw.githubusercontent.com/playsurd/surd-x/main",
+    "https://cdn.jsdelivr.net/gh/playsurd/surd-x@main"
+  ],
   "C": [
     "https://cdn.jsdelivr.net/gh/playsurd/surd-covers@main",
     "https://raw.githubusercontent.com/playsurd/surd-covers/main"
+  ],
+  "R": [
+    "https://cdn.jsdelivr.net/gh/playsurd/surd-runtime@main",
+    "https://raw.githubusercontent.com/playsurd/surd-runtime/main"
   ]
 }

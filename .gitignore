@@ -27,3 +27,21 @@ data/keep.txt
 
 scripts/playtest.mjs
 data/playtest.json
+scripts/publish.mjs
+scripts/mirror-covers.mjs
+data/covers-missing.json
+data/keep-flash.txt
+data/keep-extra.txt
+data/cdn.generated.json
+.publish/
+scripts/make-extra-list.mjs
+scripts/scan-big.mjs
+scripts/publish.mjs
+scripts/mirror-covers.mjs
+data/covers-missing.json
+data/keep-flash.txt
+data/keep-extra.txt
+data/big-games.json
+data/cdn.generated.json
+data/webporting.json
+.publish/

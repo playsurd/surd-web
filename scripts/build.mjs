@@ -8,12 +8,13 @@
  *
  * Output: dist/index.html  (hosted)  +  dist/surd.html  (the downloadable copy)
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const read = (p) => readFileSync(join(root, p), 'utf8');
+const p = (f) => join(root, f);
+const read = (f) => readFileSync(join(root, f), 'utf8');
 
 const build = new Date().toISOString().slice(0, 10);
 const { games } = JSON.parse(read('data/games.json'));
@@ -22,6 +23,25 @@ const { collections } = JSON.parse(read('data/collections.json'));
 
 // Assign each game to a series collection, so one card can stand for a 50-entry mod series.
 // A game keeps its own identity — the collection is just how the grid groups it.
+/* Two orthogonal axes decide a game's base:
+ *   risk  — main library ({A}) vs high-risk tier in its own repo ({X})
+ *   size  — jsDelivr hard-403s any file over 20 MB, so those games must come from
+ *           raw.githubusercontent instead ({B} for main, {Y} for high-risk)
+ * Same repos either way; only the CDN order differs.
+ */
+const bigSet = new Set(
+  existsSync(p('data/big-games.json')) ? JSON.parse(read('data/big-games.json')) : []);
+const riskSet = new Set(
+  existsSync(p('data/keep-extra.txt'))
+    ? read('data/keep-extra.txt').split('\n').map((l) => l.replace(/#.*/, '').trim()).filter(Boolean)
+    : []);
+
+for (const g of games) {
+  const tier = riskSet.has(g.id) ? (bigSet.has(g.id) ? 'Y' : 'X')
+                                 : (bigSet.has(g.id) ? 'B' : 'A');
+  g.src = String(g.src).replace(/^\{[A-Z]\}/, `{${tier}}`);
+}
+
 const cols = collections.map((c) => ({ ...c, re: new RegExp(c.match, 'i'), n: 0 }));
 for (const g of games) {
   const hit = cols.find((c) => c.re.test(g.title));
