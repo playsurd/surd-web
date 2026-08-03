@@ -1,56 +1,18 @@
-# secrets — never commit
+# the public repo is the built site and nothing else
+src/
+scripts/
+data/
+tools/
+mirror
+mirror/
+dist/
+.publish/
+node_modules/
+
+# secrets
 .gh_token
 *.token
 .env
 
-# build output (deployed, not committed to the source repo)
-dist/
-
-node_modules/
-.DS_Store
-
-# internal notes — never commit
+# internal notes
 README.internal.md
-
-# internal curation tool
-tools/
-mirror/
-data/catalogue.full.json
-data/mirror-report.json
-
-# internal ingestion tooling — references upstream sources, do not publish
-scripts/import-catalogue.mjs
-scripts/curate.mjs
-scripts/make-curator.mjs
-scripts/mirror.mjs
-data/keep.txt
-
-scripts/playtest.mjs
-data/playtest.json
-scripts/publish.mjs
-scripts/mirror-covers.mjs
-data/covers-missing.json
-data/keep-flash.txt
-data/keep-extra.txt
-data/cdn.generated.json
-.publish/
-scripts/make-extra-list.mjs
-scripts/scan-big.mjs
-scripts/publish.mjs
-scripts/mirror-covers.mjs
-data/covers-missing.json
-data/keep-flash.txt
-data/keep-extra.txt
-data/big-games.json
-data/cdn.generated.json
-data/webporting.json
-.publish/
-scripts/prune.mjs
-data/dropped.json
-data/keep-encfix.txt
-data/keep-ruffle-fix.txt
-scripts/clean-ads.mjs
-data/keep-sweep.txt
-scripts/make-picks.mjs
-scripts/apply-picks.mjs
-data/picks.txt

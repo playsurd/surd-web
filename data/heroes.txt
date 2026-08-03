@@ -1,6 +1,0 @@
-# hero rotation — the big banner cycles through these on load.
-# Separate from picks: a hero need not be a pick, and vice versa.
-clover-pit
-minecraft-1-8-8
-miside
-hollow-knight

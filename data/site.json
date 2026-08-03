@@ -1,7 +1,0 @@
-{
-  "_comment": "Footer + legal. Leave a value empty and its link is hidden, so nothing dead ever ships. contact is used as the DMCA address; a reachable one is the point of having the notice at all.",
-  "contact": "playsurd@protonmail.com",
-  "discord": "",
-  "github": "https://github.com/playsurd/surd-web",
-  "tagline": ""
-}
