@@ -461,7 +461,7 @@
     if (g.author) bits.push(g.author);
     if (g.porter) bits.push('web port by ' + g.porter);
     if (g.tags && g.tags.length) bits.push(g.tags.join(' · '));
-    $('#hero-meta').textContent = bits.join('  —  ');
+    $('#hero-meta').textContent = bits.join('  ·  ');
   }
 
   function paintDots() {
@@ -581,7 +581,7 @@
     if (k === ' ') return 'Space';
     if (k === 'Escape') return 'Esc';
     if (k && k.length === 1) return k.toUpperCase();
-    return k || '—';
+    return k || 'none';
   }
   function drawKey() {
     $('#s-panickey').textContent = capturing ? 'Press a key…' : keyLabel(panicKey);
@@ -664,7 +664,7 @@
     privacy: {
       title: 'Privacy',
       html: '<p>There are no accounts. Favourites, recently played, settings and game ' +
-        'saves are kept in your browser\'s local storage on this device — clearing site ' +
+        'saves are kept in your browser\'s local storage on this device. clearing site ' +
         'data in Settings erases all of it.</p>' +
         '<p>Games are fetched from public file hosts, which see the request the same way ' +
         'any website does. Individual games may store their own progress locally.</p>'
