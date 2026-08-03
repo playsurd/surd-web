@@ -114,33 +114,41 @@ main{flex:1;overflow-y:auto;overflow-x:hidden}
 }
 #hero-actions{display:flex;gap:10px;flex-wrap:wrap}
 
+/* Hero content is bottom-aligned, so the top-right corner is the only reliably empty
+   space. Edge-anchored arrows overlapped the title, which starts at the padding line. */
 .hero-arrow{
-  position:absolute;top:50%;transform:translateY(-50%);z-index:3;
-  width:38px;height:56px;display:grid;place-items:center;padding:0;cursor:pointer;
-  background:rgba(8,8,10,.55);border:1px solid var(--line);color:var(--fg);
-  opacity:0;transition:opacity .14s, background .14s, border-color .14s
+  position:absolute;top:18px;z-index:3;
+  width:34px;height:34px;display:grid;place-items:center;padding:0;cursor:pointer;
+  background:rgba(8,8,10,.6);border:1px solid var(--line);color:var(--fg);
+  transition:background .14s, border-color .14s, color .14s
 }
-#hero:hover .hero-arrow,.hero-arrow:focus-visible{opacity:1}
 .hero-arrow:hover{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
-.hero-arrow svg{width:20px;height:20px;display:block}
-#hero-prev{left:0}
-#hero-next{right:0}
+.hero-arrow:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.hero-arrow svg{width:18px;height:18px;display:block}
+#hero-prev{right:60px}
+#hero-next{right:18px}
 
-#hero-dots{
-  position:absolute;left:0;right:0;bottom:12px;z-index:3;
-  display:flex;justify-content:center;gap:7px
-}
+/* In normal flow under the buttons — absolute positioning collided with them. */
+#hero-dots{display:flex;gap:6px;margin-top:12px}
 #hero-dots[hidden]{display:none}
+/* The bar reads as 4px but the button is 20px tall: a 4px hit target is unusable.
+   The visual is drawn by ::before so enlarging the target changes nothing on screen. */
 .dot{
-  width:26px;height:4px;padding:0;border:0;cursor:pointer;
-  background:rgba(255,255,255,.28);transition:background .14s
+  position:relative;width:30px;height:20px;padding:0;border:0;
+  background:none;cursor:pointer;display:block
 }
-.dot:hover{background:rgba(255,255,255,.55)}
-.dot.on{background:var(--acc)}
-.dot:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+.dot::before{
+  content:"";position:absolute;left:2px;right:2px;top:50%;transform:translateY(-50%);
+  height:4px;background:rgba(255,255,255,.28);transition:background .14s
+}
+.dot:hover::before{background:rgba(255,255,255,.6)}
+.dot.on::before{background:var(--acc)}
+.dot:focus-visible{outline:2px solid var(--acc);outline-offset:0}
 
 @media (max-width:560px){
-  .hero-arrow{opacity:1;width:32px;height:46px}
+  .hero-arrow{top:14px}
+  #hero-prev{right:52px}
+  #hero-next{right:14px}
 }
 .btn.primary{
   background:var(--acc);border-color:var(--acc);color:var(--acc-ink);font-weight:700;
