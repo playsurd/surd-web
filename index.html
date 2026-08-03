@@ -105,17 +105,20 @@ background:linear-gradient(to right,
 rgba(8,8,10,.94) 0%, rgba(8,8,10,.9) 34%, rgba(8,8,10,.45) 62%, rgba(8,8,10,.1) 100%)
 }
 #hero-ring{
-position:absolute;inset:0;z-index:3;width:100%;height:100%;pointer-events:none
+position:absolute;inset:1px;z-index:3;width:calc(100% - 2px);height:calc(100% - 2px);
+pointer-events:none;overflow:visible;display:block
 }
 #hero-ring rect{
 fill:none;stroke:var(--acc);stroke-width:2;vector-effect:non-scaling-stroke;
-stroke-dasharray:1;stroke-dashoffset:1;
+stroke-linecap:butt;stroke-dasharray:1 1;stroke-dashoffset:1;
 animation:heroring var(--hero-ms,5000ms) linear forwards
 }
 #hero-ring.paused rect{animation-play-state:paused}
 #hero-ring.off{display:none}
 @keyframes heroring{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 @media (prefers-reduced-motion:reduce){#hero-ring{display:none}}
+#hero-art,#hero-shot,#hero-body{transition:opacity .26s ease}
+#hero.swap #hero-art,#hero.swap #hero-shot,#hero.swap #hero-body{opacity:0}
 #hero-body{position:relative;z-index:4;max-width:min(640px,58%)}
 #hero-title{
 margin:0 0 8px;font-size:clamp(28px,4.4vw,46px);line-height:1.03;
@@ -343,9 +346,7 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
     <div id="hero">
       <div id="hero-art"></div>
       <div id="hero-shot"></div>
-      <svg id="hero-ring" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <rect x="0" y="0" width="100" height="100" pathLength="1"></rect>
-      </svg>
+      <svg id="hero-ring" aria-hidden="true"><rect pathLength="1"></rect></svg>
       <div id="hero-body">
         <h1 id="hero-title"></h1>
         <p id="hero-meta"></p>
@@ -816,27 +817,62 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
       b.setAttribute('aria-current', i === heroIdx ? 'true' : 'false');
     });
   }
+  function sizeRing() {
+    var ring = $('#hero-ring');
+    var hero = $('#hero');
+    if (!ring || !hero) return;
+    var b = hero.getBoundingClientRect();
+    var w = Math.max(1, Math.round(b.width) - 2);
+    var h = Math.max(1, Math.round(b.height) - 2);
+    ring.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    var r = ring.firstElementChild;
+    if (!r) return;
+    r.setAttribute('x', 1); r.setAttribute('y', 1);
+    r.setAttribute('width', Math.max(1, w - 2));
+    r.setAttribute('height', Math.max(1, h - 2));
+  }
   function restartRing() {
     var ring = $('#hero-ring');
     if (!ring) return;
-    var r = ring.firstElementChild;
     ring.classList.toggle('off', HEROES.length < 2);
+    sizeRing();
+    var r = ring.firstElementChild;
     if (!r) return;
     r.style.animation = 'none';
     void r.getBoundingClientRect();
     r.style.animation = '';
   }
+  var ringResize = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(ringResize);
+    ringResize = setTimeout(sizeRing, 120);
+  });
   function ringPaused(on) {
     var ring = $('#hero-ring');
     if (ring) ring.classList.toggle('paused', !!on);
   }
-  function showHero(i, manual) {
+  var FADE_MS = 260;
+  var swapTimer = null;
+  function showHero(i, manual, instant) {
     if (!HEROES.length) return;
     heroIdx = ((i % HEROES.length) + HEROES.length) % HEROES.length;
-    paintHero(HEROES[heroIdx]);
-    paintDots();
-    restartRing();
-    if (manual) startHeroTimer();
+    var g = HEROES[heroIdx];
+    var hero = $('#hero');
+    if (swapTimer) { clearTimeout(swapTimer); swapTimer = null; }
+    if (instant || !hero) {
+      paintHero(g); paintDots(); restartRing();
+      if (manual) startHeroTimer();
+      return;
+    }
+    hero.classList.add('swap');
+    swapTimer = setTimeout(function () {
+      paintHero(g);
+      paintDots();
+      hero.classList.remove('swap');
+      restartRing();
+      if (manual) startHeroTimer();
+      swapTimer = null;
+    }, FADE_MS);
   }
   function startHeroTimer() {
     stopHeroTimer();
@@ -1007,7 +1043,7 @@ background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
     link('#foot-contact', SITE.contact ? 'mailto:' + SITE.contact : '');
   })();
   applyCloak();
-  showHero(0);
+  showHero(0, false, true);
   startHeroTimer();
   renderTags();
   renderGrid();
