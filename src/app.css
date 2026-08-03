@@ -248,7 +248,18 @@ select{width:auto;max-width:60%}
   font-weight:600;padding:8px 14px;cursor:pointer;white-space:nowrap
 }
 .btn:hover{border-color:var(--acc);color:var(--acc)}
-.btn.danger:hover{border-color:#ff5c5c;color:#ff5c5c}
+
+/* icon-only action — the destructive one carries its meaning in colour + glyph */
+.btn.icon{display:grid;place-items:center;width:38px;height:36px;padding:0}
+.btn.icon svg{width:17px;height:17px;display:block}
+.btn.danger{color:#ff5c5c;border-color:rgba(255,92,92,.3)}
+.btn.danger:hover{border-color:#ff5c5c;color:#ff5c5c;background:rgba(255,92,92,.1)}
+
+/* rebindable key */
+.keycap{
+  min-width:88px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px
+}
+.keycap.listening{border-color:var(--acc);color:var(--acc)}
 .note{color:var(--dim);font-size:13px;max-width:680px;margin:8px 0 0;line-height:1.5}
 kbd{
   background:#1a1a20;border:1px solid var(--line);padding:1px 6px;

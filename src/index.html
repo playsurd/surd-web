@@ -67,26 +67,34 @@
       <span>Open in about:blank</span>
       <button id="s-blank" class="btn">Launch cloaked</button>
     </div>
-    <p class="note">Cloaked mode reopens the site inside an <code>about:blank</code> tab, so the URL
-      never appears in history or the address bar. Closing that tab closes the site.</p>
 
     <h2>Mirror</h2>
     <label class="row">
       <span>Load games from</span>
       <select id="s-mirror"></select>
     </label>
-    <p class="note">If games or covers fail to load, try another mirror. They serve identical files.</p>
 
     <h2>Panic key</h2>
+    <div class="row">
+      <span>Key</span>
+      <button id="s-panickey" class="btn keycap"></button>
+    </div>
     <label class="row">
-      <span>Redirect on <kbd>`</kbd></span>
+      <span>Redirects to</span>
       <input id="s-panic" type="text" placeholder="https://classroom.google.com" autocomplete="off">
     </label>
 
     <h2>Data</h2>
     <div class="row">
-      <span>Favorites &amp; history are stored in this browser only</span>
-      <button id="s-clear" class="btn danger">Clear all data</button>
+      <span>Clear favorites, history and settings</span>
+      <button id="s-clear" class="btn danger icon" title="Clear all data" aria-label="Clear all data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          <path d="M10 11v6"/><path d="M14 11v6"/>
+        </svg>
+      </button>
     </div>
     <p class="note" id="build"></p>
   </section>

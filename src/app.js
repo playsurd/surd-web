@@ -380,6 +380,23 @@
   $('#s-icon').oninput = function (e) { set('cloakIcon', e.target.value); applyCloak(); };
   $('#s-panic').oninput = function (e) { set('panic', e.target.value); };
 
+  /* ---------- rebindable panic key ---------- */
+  var panicKey = get('panicKey', '`');
+  var capturing = false;
+
+  function keyLabel(k) {
+    if (k === ' ') return 'Space';
+    if (k === 'Escape') return 'Esc';
+    if (k && k.length === 1) return k.toUpperCase();
+    return k || '—';
+  }
+  function drawKey() {
+    $('#s-panickey').textContent = capturing ? 'Press a key…' : keyLabel(panicKey);
+    $('#s-panickey').classList.toggle('listening', capturing);
+  }
+  $('#s-panickey').onclick = function () { capturing = true; drawKey(); };
+  drawKey();
+
   // about:blank cloak — reopens this page inside a blank tab so the URL never hits history.
   $('#s-blank').onclick = function () {
     var w = window.open('about:blank', '_blank');
@@ -420,8 +437,17 @@
 
   /* ---------- keys ---------- */
   document.onkeydown = function (e) {
+    // Rebinding swallows the next keypress, whatever it is.
+    if (capturing) {
+      e.preventDefault();
+      capturing = false;
+      if (e.key !== 'Escape') { panicKey = e.key; set('panicKey', panicKey); }
+      drawKey();
+      return;
+    }
+
     var typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
-    if (e.key === '`' && !typing) {
+    if (e.key === panicKey && !typing) {
       var p = get('panic', '');
       if (p) { e.preventDefault(); location.replace(p); }
     }
