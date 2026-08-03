@@ -18,6 +18,28 @@
   var favs = get('favs', []);
   var recents = get('recents', []);
 
+  /* ---------- CDN indirection ----------
+   * Manifest URLs are stored as {A}/… and {C}/… and resolved here against an ordered
+   * list of bases. A CDN can ban an account overnight (jsDelivr did exactly that to the
+   * biggest site in this category), so switching mirrors must never require a rebuild.
+   */
+  var CDN = window.SURD_CDN || { A: [''], C: [''] };
+  var mirror = get('mirror', 0);
+
+  function resolve(url, kind) {
+    var list = CDN[kind] || [''];
+    var base = list[Math.min(mirror, list.length - 1)] || list[0] || '';
+    return String(url || '').replace(/^\{[AC]\}/, base);
+  }
+
+  // Covers fall through the base list independently — one dead CDN shouldn't blank the grid.
+  function coverFallback(img, url, i) {
+    var list = CDN.C || [];
+    if (i >= list.length) { img.removeAttribute('src'); return; }
+    img.onerror = function () { coverFallback(img, url, i + 1); };
+    img.src = String(url).replace(/^\{C\}/, list[i]);
+  }
+
   /* ---------- state ---------- */
   var query = '';
   var tag = null;
@@ -58,8 +80,7 @@
     img.loading = 'lazy';
     img.decoding = 'async';
     img.alt = '';
-    if (g.cover) img.src = g.cover;
-    img.onerror = function () { img.removeAttribute('src'); };
+    if (g.cover) coverFallback(img, g.cover, Math.min(mirror, (CDN.C || []).length - 1));
 
     var t = document.createElement('div');
     t.className = 't';
@@ -124,7 +145,23 @@
     set('recents', recents);
 
     $('#p-title').textContent = g.title;
-    $('#p-frame').src = g.src;
+
+    // Credit the original developer — cheap goodwill, and it matters if one ever complains.
+    var by = $('#p-by');
+    by.textContent = '';
+    if (g.author) {
+      if (g.authorLink) {
+        var a = document.createElement('a');
+        a.href = g.authorLink; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        a.textContent = g.author;
+        by.appendChild(document.createTextNode('by '));
+        by.appendChild(a);
+      } else {
+        by.textContent = 'by ' + g.author;
+      }
+    }
+
+    $('#p-frame').src = resolve(g.src, 'A');
     $('#player').hidden = false;
     syncFavBtn();
   }
@@ -195,6 +232,24 @@
     w.document.body.appendChild(f);
     location.replace(get('panic', '') || 'https://www.google.com');
   };
+
+  /* ---------- mirror switcher ---------- */
+  (function () {
+    var sel = $('#s-mirror');
+    (CDN.A || []).forEach(function (base, i) {
+      var o = document.createElement('option');
+      o.value = i;
+      // Show the host only — the full URL is noise.
+      o.textContent = (base.split('/')[2] || base) + (i === 0 ? ' (default)' : '');
+      sel.appendChild(o);
+    });
+    sel.value = Math.min(mirror, (CDN.A || []).length - 1);
+    sel.onchange = function () {
+      mirror = +sel.value;
+      set('mirror', mirror);
+      renderGrid();
+    };
+  })();
 
   $('#s-clear').onclick = function () {
     if (!confirm('Clear favorites, history and settings?')) return;

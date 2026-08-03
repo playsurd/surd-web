@@ -17,9 +17,14 @@ const read = (p) => readFileSync(join(root, p), 'utf8');
 
 const build = new Date().toISOString().slice(0, 10);
 const { games } = JSON.parse(read('data/games.json'));
+const cdn = JSON.parse(read('data/cdn.json'));
 
 // Strip fields the client never reads — keeps the inlined payload small.
-const slim = games.map(({ id, title, tags, src, cover }) => ({ id, title, tags, src, cover }));
+// src/cover keep their {A}/{C} placeholders; the client resolves them against cdn bases.
+const slim = games.map(({ id, title, tags, src, cover, author, authorLink }) =>
+  ({ id, title, tags, src, cover, author, authorLink }));
+
+const bases = { A: cdn.A, C: cdn.C };
 
 // Conservative CSS squeeze: comments + leading indentation + blank lines only.
 const css = read('src/app.css')
@@ -30,7 +35,10 @@ const css = read('src/app.css')
 
 const html = read('src/index.html')
   .replace('/*STYLE*/', () => css)
-  .replace('/*GAMES*/', () => `window.SURD_GAMES=${JSON.stringify(slim)};window.SURD_BUILD=${JSON.stringify(build)};`)
+  .replace('/*GAMES*/', () =>
+    `window.SURD_GAMES=${JSON.stringify(slim)};` +
+    `window.SURD_CDN=${JSON.stringify(bases)};` +
+    `window.SURD_BUILD=${JSON.stringify(build)};`)
   .replace('/*APP*/', () => read('src/app.js'));
 
 mkdirSync(join(root, 'dist'), { recursive: true });

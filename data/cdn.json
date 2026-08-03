@@ -1,0 +1,11 @@
+{
+  "_comment": "Ordered asset bases. {A} = game assets, {C} = covers. Never bake absolute URLs into games.json — a CDN can revoke access at any time, and swapping bases here must never require a rebuild. Covers fall through the list automatically; users can also pick a mirror in Settings.",
+  "A": [
+    "https://cdn.jsdelivr.net/gh/playsurd/surd-assets@main",
+    "https://raw.githubusercontent.com/playsurd/surd-assets/main"
+  ],
+  "C": [
+    "https://cdn.jsdelivr.net/gh/playsurd/surd-covers@main",
+    "https://raw.githubusercontent.com/playsurd/surd-covers/main"
+  ]
+}

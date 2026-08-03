@@ -43,6 +43,13 @@
     <p class="note">Cloaked mode reopens the site inside an <code>about:blank</code> tab, so the URL
       never appears in history or the address bar. Closing that tab closes the site.</p>
 
+    <h2>Mirror</h2>
+    <label class="row">
+      <span>Load games from</span>
+      <select id="s-mirror"></select>
+    </label>
+    <p class="note">If games or covers fail to load, try another mirror. They serve identical files.</p>
+
     <h2>Panic key</h2>
     <label class="row">
       <span>Redirect on <kbd>`</kbd></span>
@@ -62,6 +69,7 @@
   <div id="player-bar">
     <button id="p-back" class="btn">&larr; Back</button>
     <strong id="p-title"></strong>
+    <small id="p-by"></small>
     <span class="spacer"></span>
     <button id="p-fav" class="btn" title="Favorite">&#9734;</button>
     <button id="p-full" class="btn">Fullscreen</button>

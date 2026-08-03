@@ -102,4 +102,11 @@ kbd{background:var(--line);border-radius:4px;padding:1px 5px;font:inherit;font-s
   background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto
 }
 #player-bar .spacer{flex:1}
+#p-by{color:var(--dim);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#p-by a{color:var(--dim)}
+#p-by a:hover{color:var(--acc)}
+select{
+  padding:6px 10px;border-radius:7px;border:1px solid var(--line);
+  background:var(--bg);color:var(--fg);font:inherit;max-width:60%
+}
 #p-frame{flex:1;width:100%;border:0;background:#000}
