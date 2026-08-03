@@ -33,10 +33,12 @@
   }
 
   // Covers fall through the base list independently — one dead CDN shouldn't blank the grid.
-  function coverFallback(img, url, i) {
+  // `card` (optional) has its .noart class cleared only once an image really loads.
+  function coverFallback(img, url, i, card) {
     var list = CDN.C || [];
     if (i >= list.length) { img.removeAttribute('src'); return; }
-    img.onerror = function () { coverFallback(img, url, i + 1); };
+    img.onerror = function () { coverFallback(img, url, i + 1, card); };
+    img.onload = function () { if (card) card.classList.remove('noart'); };
     img.src = String(url).replace(/^\{C\}/, list[i]);
   }
 
@@ -94,7 +96,7 @@
 
   function card(g) {
     var el = document.createElement('button');
-    el.className = 'card';
+    el.className = 'card noart';
     el.setAttribute('role', 'listitem');
     el.style.background = tint(g.id);
 
@@ -107,7 +109,7 @@
     img.loading = 'lazy';
     img.decoding = 'async';
     img.alt = '';
-    if (g.cover) coverFallback(img, g.cover, Math.min(mirror, (CDN.C || []).length - 1));
+    if (g.cover) coverFallback(img, g.cover, Math.min(mirror, (CDN.C || []).length - 1), el);
 
     var t = document.createElement('div');
     t.className = 't';
@@ -129,7 +131,7 @@
     var members = inCol(c.id);
     var face = members.filter(function (g) { return g.pick; })[0] || members[0];
     var el = document.createElement('button');
-    el.className = 'card col';
+    el.className = 'card col noart';
     el.setAttribute('role', 'listitem');
     el.style.background = tint(c.id);
 
@@ -140,7 +142,7 @@
 
     var img = document.createElement('img');
     img.loading = 'lazy'; img.decoding = 'async'; img.alt = '';
-    if (face && face.cover) coverFallback(img, face.cover, 0);
+    if (face && face.cover) coverFallback(img, face.cover, 0, el);
 
     var t = document.createElement('div');
     t.className = 't';

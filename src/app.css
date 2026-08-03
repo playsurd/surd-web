@@ -70,7 +70,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden}
 #hero{
   position:relative;display:flex;align-items:flex-end;gap:26px;
   min-height:260px;margin-bottom:28px;padding:26px;
-  border-radius:20px;overflow:hidden;border:1px solid var(--line);
+  border-radius:0;overflow:hidden;border:1px solid var(--line);
   background:var(--bg2)
 }
 #hero-art{position:absolute;inset:0;z-index:0}
@@ -149,12 +149,12 @@ h2::after{content:"";flex:1;height:1px;background:var(--line)}
 
 .card{
   position:relative;aspect-ratio:1;border:0;padding:0;margin:0;
-  border-radius:var(--r);overflow:hidden;cursor:pointer;
+  border-radius:0;overflow:hidden;cursor:pointer;
   background:var(--bg2);font:inherit;color:var(--fg);display:block;
   transition:transform .14s ease, box-shadow .14s ease
 }
 .card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.55)}
-.card:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+.card:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 .card img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
@@ -177,6 +177,10 @@ h2::after{content:"";flex:1;height:1px;background:var(--line)}
   font-size:13.5px;font-weight:600;line-height:1.25;letter-spacing:-.01em;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
 }
+/* No cover art: the scrim has nothing to fade over and reads as an artifact,
+   so use a solid bar and hide the empty <img> entirely. */
+.card.noart img{display:none}
+.card.noart .t{background:rgba(0,0,0,.5);padding-top:10px}
 
 .card .fav{
   position:absolute;top:8px;right:8px;z-index:3;width:28px;height:28px;border:0;
@@ -189,7 +193,7 @@ h2::after{content:"";flex:1;height:1px;background:var(--line)}
 /* series folder card — outlined so it reads as "opens into more", not as a game */
 .card.col{
   border:2px dashed rgba(194,240,74,.45);
-  border-radius:12px
+  border-radius:0
 }
 .card.col:hover{border-color:var(--acc)}
 .card.col img{opacity:.55}
