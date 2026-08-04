@@ -1183,6 +1183,11 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
         .then(function (html) {
           if (/^\s*Couldn't find the requested file/i.test(html)) return Promise.reject('404-body');
           if (token !== launchToken) return;
+          if (html.indexOf('SURD_GAME') >= 0) {
+            setLoadStatus('starting game');
+            writeInto(html);
+            return;
+          }
           var eng = engineName(html);
           setLoadStatus(eng ? 'starting ' + eng + ' game' : 'starting game');
           var base = url.slice(0, url.lastIndexOf('/') + 1);
