@@ -363,6 +363,27 @@ position:relative;z-index:3
 #p-by a:hover{color:var(--acc)}
 #p-by .porter{color:var(--acc);opacity:.85}
 #p-frame{flex:1;width:100%;border:0;background:#000}
+#p-log-btn.has-err{color:var(--acc);border-color:var(--acc)}
+#p-log{
+position:absolute;top:53px;right:0;bottom:0;width:min(320px,80vw);z-index:4;
+display:flex;flex-direction:column;
+background:rgba(10,10,12,.97);border-left:1px solid var(--line);
+animation:pl-in .16s ease
+}
+#p-log[hidden]{display:none}
+#p-log-head{
+display:flex;align-items:center;justify-content:space-between;
+padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px;flex:0 0 auto
+}
+#p-log-head strong{letter-spacing:.04em}
+#p-log-body{
+flex:1;overflow-y:auto;padding:8px 12px;
+font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.5
+}
+#p-log-body .lg{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04);word-break:break-word}
+#p-log-body .lg-info{color:var(--dim)}
+#p-log-body .lg-warn{color:#e0b341}
+#p-log-body .lg-err{color:#ff6b4a}
 #p-loading{
 position:absolute;left:0;right:0;bottom:0;top:0;z-index:2;
 display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
@@ -586,9 +607,14 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
     <small id="p-by"></small>
     <span class="spacer"></span>
     <button id="p-fav" class="btn" title="Favorite">&#9734;</button>
+    <button id="p-log-btn" class="btn" title="Loading log">Log</button>
     <button id="p-full" class="btn">Fullscreen</button>
   </div>
   <iframe id="p-frame" title="Game" allow="autoplay; fullscreen; gamepad; pointer-lock" allowfullscreen></iframe>
+  <aside id="p-log" hidden>
+    <div id="p-log-head"><strong>Loading log</strong><button id="p-log-close" class="btn" aria-label="Close">&times;</button></div>
+    <div id="p-log-body"></div>
+  </aside>
   <div id="p-loading" hidden>
     <div class="pl-mark" aria-hidden="true"></div>
     <div class="pl-name"></div>
@@ -996,6 +1022,7 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
     $('#player').hidden = false;
     stopHeroTimer();
     syncFavBtn();
+    resetLog();
     showGameLoading(g);
     launch(g);
     watchForPaint(launchToken);
@@ -1016,10 +1043,11 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
       return DEAD_ACCT.test(src) ? '' : tag;
     });
   }
+  var LOG_INJECT = '<scr' + 'ipt>' + atob('KGZ1bmN0aW9uKCl7ZnVuY3Rpb24gUCh0LG0pe3RyeXtwYXJlbnQucG9zdE1lc3NhZ2Uoe19fc3VyZGxvZzoxLHQ6dCxtOlN0cmluZyhtKS5zbGljZSgwLDQwMCl9LCIqIik7fWNhdGNoKGUpe319d2luZG93LmFkZEV2ZW50TGlzdGVuZXIoImVycm9yIixmdW5jdGlvbihlKXtpZihlJiZlLnRhcmdldCYmKGUudGFyZ2V0LnNyY3x8ZS50YXJnZXQuaHJlZikpUCgiZXJyIiwiZmFpbGVkIHRvIGxvYWQgIisoZS50YXJnZXQuc3JjfHxlLnRhcmdldC5ocmVmKSk7ZWxzZSBQKCJlcnIiLChlJiZlLm1lc3NhZ2V8fCJlcnJvciIpKyhlJiZlLmZpbGVuYW1lPyIgKCIrZS5maWxlbmFtZS5zcGxpdCgiLyIpLnBvcCgpKyI6IitlLmxpbmVubysiKSI6IiIpKTt9LHRydWUpO3dpbmRvdy5hZGRFdmVudExpc3RlbmVyKCJ1bmhhbmRsZWRyZWplY3Rpb24iLGZ1bmN0aW9uKGUpe1AoImVyciIsInByb21pc2UgcmVqZWN0ZWQ6ICIrKGUmJmUucmVhc29uJiYoZS5yZWFzb24ubWVzc2FnZXx8ZS5yZWFzb24pfHwiPyIpKTt9KTt2YXIgY2U9Y29uc29sZS5lcnJvcjtjb25zb2xlLmVycm9yPWZ1bmN0aW9uKCl7dHJ5e1AoIndhcm4iLFtdLnNsaWNlLmNhbGwoYXJndW1lbnRzKS5qb2luKCIgIikpO31jYXRjaCh4KXt9cmV0dXJuIGNlLmFwcGx5KHRoaXMsYXJndW1lbnRzKTt9O1AoImluZm8iLCJnYW1lIGRvY3VtZW50IGxvYWRlZCIpO30pKCk7Cg==') + '<\/scr' + 'ipt>';
   function withBase(html, abs) {
     html = stripDeadScripts(html);
     var dir = abs.slice(0, abs.lastIndexOf('/') + 1);
-    var inject = '<base href="' + dir + '">' + ASSET_SHIM;
+    var inject = '<base href="' + dir + '">' + ASSET_SHIM + LOG_INJECT;
     if (/<base\b[^>]*>/i.test(html)) html = html.replace(/<base\b[^>]*>/i, inject);
     else if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, '<head$1>' + inject);
     else html = inject + html;
@@ -1061,7 +1089,42 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
   function setLoadStatus(txt) {
     var el = $('#p-loading .pl-status');
     if (el) el.textContent = txt;
+    gameLog('info', txt);
   }
+  var logEntries = [];
+  function resetLog() { logEntries = []; renderLog(); }
+  function gameLog(type, msg) {
+    if (!msg) return;
+    var prev = logEntries[logEntries.length - 1];
+    if (prev && prev.type === type && prev.msg === msg) return;
+    logEntries.push({ type: type, msg: msg, t: Date.now() });
+    if (logEntries.length > 200) logEntries.shift();
+    var badge = $('#p-log-btn');
+    if (type === 'err' && badge && $('#p-log').hidden) badge.classList.add('has-err');
+    renderLog();
+  }
+  function renderLog() {
+    var box = $('#p-log-body');
+    if (!box) return;
+    box.textContent = '';
+    logEntries.forEach(function (e) {
+      var row = document.createElement('div');
+      row.className = 'lg lg-' + e.type;
+      row.textContent = e.msg;
+      box.appendChild(row);
+    });
+    box.scrollTop = box.scrollHeight;
+  }
+  function toggleLog() {
+    var p = $('#p-log');
+    if (!p) return;
+    p.hidden = !p.hidden;
+    if (!p.hidden) { $('#p-log-btn').classList.remove('has-err'); renderLog(); }
+  }
+  window.addEventListener('message', function (e) {
+    var d = e && e.data;
+    if (d && d.__surdlog) gameLog(d.t || 'info', d.m || '');
+  });
   function engineName(html) {
     if (/UnityLoader|createUnityInstance|UnityProgress/i.test(html)) return 'Unity';
     if (/ruffle/i.test(html)) return 'Flash';
@@ -1143,6 +1206,8 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
   }
   $('#p-back').onclick = closePlayer;
   $('#p-fav').onclick = function () { if (current) toggleFav(current.id); };
+  $('#p-log-btn').onclick = toggleLog;
+  $('#p-log-close').onclick = toggleLog;
   $('#p-full').onclick = function () {
     var f = $('#p-frame');
     if (f.requestFullscreen) f.requestFullscreen();
