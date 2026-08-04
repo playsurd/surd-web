@@ -1157,6 +1157,7 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
   function hostOf(url) { try { return url.replace(/^https?:\/\//, '').split('/')[0]; } catch (e) { return 'the mirror'; } }
   function launch(g) {
     var token = ++launchToken;
+    while (extraBlobs.length) { try { URL.revokeObjectURL(extraBlobs.pop()); } catch (e) {} }
     var urls = candidates(g.src);
     if (location.protocol === 'file:' || typeof fetch !== 'function') {
       setLoadStatus('opening game');
@@ -1184,10 +1185,44 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
           if (token !== launchToken) return;
           var eng = engineName(html);
           setLoadStatus(eng ? 'starting ' + eng + ' game' : 'starting game');
-          writeInto(withBase(html, url));
+          var base = url.slice(0, url.lastIndexOf('/') + 1);
+          prepScripts(withBase(html, url), base, token, function (finalHtml) {
+            if (token === launchToken) writeInto(finalHtml);
+          });
         })
         .catch(function () { attempt(); });
     })();
+  }
+  var extraBlobs = [];
+  function prepScripts(html, base, token, done) {
+    var re = /<script\b[^>]*\bsrc="([^"]+)"[^>]*>/gi, m, srcs = [];
+    while ((m = re.exec(html))) {
+      var s = m[1];
+      if (/^(data:|blob:)/i.test(s)) continue;
+      if (/^https?:/i.test(s) && s.indexOf('playsurd') < 0) continue;
+      if (srcs.indexOf(s) < 0) srcs.push(s);
+    }
+    if (!srcs.length) return done(html);
+    var pending = srcs.length, out = html;
+    var finish = function () { if (--pending === 0) done(out); };
+    srcs.forEach(function (s) {
+      var abs; try { abs = new URL(s, base).href; } catch (e) { return finish(); }
+      fetch(abs + (abs.indexOf('?') < 0 ? '?t=' : '&t=') + Date.now(), { headers: { Range: 'bytes=0-0' } })
+        .then(function (r) {
+          if (r.status === 206 || r.status === 200) return finish();
+          var raw = abs.replace('cdn.jsdelivr.net/gh/', 'raw.githubusercontent.com/').replace('@', '/');
+          if (raw === abs) return finish();
+          setLoadStatus('fetching ' + s.split('/').pop());
+          return fetch(raw).then(function (rr) { return rr.ok ? rr.text() : Promise.reject(); })
+            .then(function (txt) {
+              var b = URL.createObjectURL(new Blob([txt], { type: 'application/javascript' }));
+              extraBlobs.push(b);
+              out = out.split('src="' + s + '"').join('src="' + b + '"');
+              finish();
+            });
+        })
+        .catch(finish);
+    });
   }
   function closePlayer() {
     $('#player').hidden = true;
