@@ -244,26 +244,24 @@ h2::after{content:"";flex:1;height:1px;background:var(--line)}
 display:grid;gap:15px;
 grid-template-columns:repeat(auto-fill,minmax(var(--card-min,174px),1fr))
 }
-.row{margin:0 0 26px}
-.row-head{
-display:flex;align-items:center;gap:9px;width:100%;
-background:0;border:0;padding:6px 0 12px;margin:0;cursor:pointer;
-color:var(--fg);font:inherit;font-size:1.02rem;font-weight:700;text-align:left;
-letter-spacing:.2px
+.cat{margin:35px 0 0}
+.cat:first-child{margin-top:0}
+.cat-head{
+display:flex;align-items:center;gap:12px;width:100%;
+background:0;border:0;padding:0;margin:0 0 5px;cursor:pointer;text-align:left;
+font:inherit;font-size:13.5px;font-weight:700;letter-spacing:.11em;
+text-transform:uppercase;color:var(--fg)
 }
-.row-head:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
-.row-head .chev{
-width:15px;height:15px;flex:none;transition:transform .18s ease;
-color:var(--acc)
+.cat-head .chev{
+width:11px;height:11px;flex:0 0 auto;color:var(--acc);
+transition:transform .18s ease
 }
-.row.collapsed .row-head .chev{transform:rotate(-90deg)}
-.row-head .cnt{
-font-weight:600;font-size:.82rem;color:var(--dim);
-border:1px solid var(--line);border-radius:999px;padding:1px 8px
-}
-.row-head:hover .cnt{color:var(--fg)}
-.row.collapsed .cards{display:none}
-body.perf .row-head .chev{transition:none}
+.cat.collapsed .cat-head .chev{transform:rotate(-90deg)}
+.cat-head::after{content:"";flex:1;height:1px;background:var(--line)}
+.cat-head:hover{color:var(--acc)}
+.cat.collapsed .cards,.cat.collapsed .cat-body{display:none}
+body.perf .cat-head .chev{transition:none}
+#view-settings .cat{max-width:750px;margin-top:26px}
 .card{
 position:relative;aspect-ratio:1;border:0;padding:0;margin:0;
 overflow:hidden;cursor:pointer;
@@ -768,20 +766,17 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
   function row(key, title, count, build) {
     if (!count) return;
     var wrap = document.createElement('section');
-    wrap.className = 'row' + (collapsed[key] ? ' collapsed' : '');
+    wrap.className = 'cat' + (collapsed[key] ? ' collapsed' : '');
     var head = document.createElement('button');
-    head.className = 'row-head';
+    head.className = 'cat-head';
     head.setAttribute('aria-expanded', collapsed[key] ? 'false' : 'true');
     head.innerHTML =
       '<svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" ' +
-      'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
       '<path d="m5 8 5 5 5-5"/></svg>';
     var label = document.createElement('span');
     label.textContent = title;
-    var cnt = document.createElement('span');
-    cnt.className = 'cnt';
-    cnt.textContent = count;
-    head.appendChild(label); head.appendChild(cnt);
+    head.appendChild(label);
     var body = document.createElement('div');
     body.className = 'cards';
     var filled = false;
@@ -797,6 +792,43 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
     };
     wrap.appendChild(head); wrap.appendChild(body);
     $('#grid').appendChild(wrap);
+  }
+  function setupSettingsCollapse() {
+    var view = $('#view-settings');
+    var kids = [].slice.call(view.children);
+    var groups = [];
+    kids.forEach(function (el) {
+      if (el.tagName === 'H2') groups.push({ h: el, body: [] });
+      else if (groups.length) groups[groups.length - 1].body.push(el);
+    });
+    groups.forEach(function (g) {
+      var key = 'set:' + g.h.textContent.toLowerCase().replace(/[^a-z]+/g, '-');
+      var cat = document.createElement('section');
+      cat.className = 'cat' + (collapsed[key] ? ' collapsed' : '');
+      var head = document.createElement('button');
+      head.className = 'cat-head';
+      head.setAttribute('aria-expanded', collapsed[key] ? 'false' : 'true');
+      head.innerHTML =
+        '<svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" ' +
+        'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="m5 8 5 5 5-5"/></svg>';
+      var label = document.createElement('span');
+      label.textContent = g.h.textContent;
+      head.appendChild(label);
+      var body = document.createElement('div');
+      body.className = 'cat-body';
+      g.body.forEach(function (el) { body.appendChild(el); });
+      head.onclick = function () {
+        var now = !cat.classList.contains('collapsed');
+        cat.classList.toggle('collapsed', now);
+        head.setAttribute('aria-expanded', now ? 'false' : 'true');
+        collapsed[key] = now ? 1 : 0;
+        set('collapsed', collapsed);
+      };
+      view.insertBefore(cat, g.h);
+      view.removeChild(g.h);
+      cat.appendChild(head); cat.appendChild(body);
+    });
   }
   function section(title, list, grid, removable) {
     if (!list.length) return;
@@ -1423,6 +1455,7 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
   var lede = $('#lede');
   if (lede) lede.remove();
   applyCloak();
+  setupSettingsCollapse();
   showHero(0, false, true);
   startHeroTimer();
   renderTags();
