@@ -649,6 +649,7 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
     cols: PACKED.c || [],
     tools: PACKED.t || [],
     cdn: window.SURD_CDN || {},
+    rt: window.SURD_RT || '',
     site: window.SURD_SITE || {},
   };
   var LIVE = (function () {
@@ -660,6 +661,7 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
         cols: c.cols || BAKED.cols,
         tools: c.tools || BAKED.tools,
         cdn: c.cdn && Object.keys(c.cdn).length ? c.cdn : BAKED.cdn,
+        rt: c.rt || BAKED.rt,
         site: c.site || BAKED.site,
       };
     }
@@ -1184,8 +1186,9 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
           if (/^\s*Couldn't find the requested file/i.test(html)) return Promise.reject('404-body');
           if (token !== launchToken) return;
           if (html.indexOf('SURD_GAME') >= 0) {
-            if (window.SURD_RT) {
-              html = html.replace(/(surd-runtime@main\/)v[0-9a-f]+\//g, '$1v' + window.SURD_RT + '/');
+            var rtv = LIVE.rt || window.SURD_RT;
+            if (rtv) {
+              html = html.replace(/(surd-runtime@main\/)v[0-9a-f]+\//g, '$1v' + rtv + '/');
             }
             setLoadStatus('starting game');
             writeInto(html);
