@@ -703,17 +703,31 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
     var base = list[Math.min(mirror, list.length - 1)] || list[0] || '';
     return s.replace(/^\{[A-Z][A-Z0-9]*\}/, base);
   }
-  function coverFallback(img, url, i, card) {
+  function coverFallback(img, url, i, card, done) {
     var list = CDN.C || [];
-    if (i >= list.length) { img.removeAttribute('src'); return; }
-    img.onerror = function () { coverFallback(img, url, i + 1, card); };
-    img.onload = function () { if (card) card.classList.remove('noart'); };
+    if (i >= list.length) { img.removeAttribute('src'); if (done) done(); return; }
+    img.onerror = function () { coverFallback(img, url, i + 1, card, done); };
+    img.onload = function () { if (card) card.classList.remove('noart'); if (done) done(); };
     img.src = String(url).replace(/^\{[A-Z][A-Z0-9]*\}/, list[i]);
   }
+  var COVER_MAX = 6;
+  var coverInflight = 0, coverQueue = [], coversPaused = false;
+  function runCover(p) {
+    coverInflight++;
+    coverFallback(p.img, p.cover, Math.min(mirror, (CDN.C || []).length - 1), p.card, function () {
+      coverInflight--; drainCovers();
+    });
+  }
+  function drainCovers() {
+    while (!coversPaused && coverInflight < COVER_MAX && coverQueue.length) runCover(coverQueue.shift());
+  }
+  function enqueueCover(p) { coverQueue.push(p); drainCovers(); }
+  function pauseCovers() { coversPaused = true; }
+  function resumeCovers() { coversPaused = false; drainCovers(); }
   var pendingCovers = [];
   function loadCover(img, cover, card) {
     if (!cover) return;
-    if (eagerBudget-- > 0) { coverFallback(img, cover, Math.min(mirror, (CDN.C || []).length - 1), card); return; }
+    if (eagerBudget-- > 0) { enqueueCover({ img: img, cover: cover, card: card }); return; }
     pendingCovers.push({ img: img, cover: cover, card: card });
   }
   function pumpCovers() {
@@ -722,7 +736,7 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
     var keep = [];
     for (var i = 0; i < pendingCovers.length; i++) {
       var p = pendingCovers[i], r = p.img.getBoundingClientRect();
-      if (r.bottom > -900 && r.top < h) coverFallback(p.img, p.cover, Math.min(mirror, (CDN.C || []).length - 1), p.card);
+      if (r.bottom > -900 && r.top < h) enqueueCover(p);
       else keep.push(p);
     }
     pendingCovers = keep;
@@ -1159,6 +1173,7 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
   function hostOf(url) { try { return url.replace(/^https?:\/\//, '').split('/')[0]; } catch (e) { return 'the mirror'; } }
   function launch(g) {
     var token = ++launchToken;
+    pauseCovers();
     while (extraBlobs.length) { try { URL.revokeObjectURL(extraBlobs.pop()); } catch (e) {} }
     var urls = candidates(g.src);
     if (typeof fetch !== 'function') {
@@ -1236,6 +1251,7 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
     });
   }
   function closePlayer() {
+    resumeCovers();
     $('#player').hidden = true;
     hideGameLoading();
     startHeroTimer();
