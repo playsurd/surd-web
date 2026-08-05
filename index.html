@@ -1054,6 +1054,32 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
   }
   var ASSET_SHIM = '<scr' + 'ipt>' + atob('KGZ1bmN0aW9uKCl7dmFyIEI9L1wuKGRhdGF8d2FzbXx1bml0eXdlYnxwY2t8bWVtfGFzbXxiaW58YnVuZGxlKShcP3wkKS9pO2Z1bmN0aW9uIFIodSl7dHJ5e2lmKHR5cGVvZiB1IT09InN0cmluZyIpcmV0dXJuIHU7dmFyIGE7dHJ5e2E9bmV3IFVSTCh1LGRvY3VtZW50LmJhc2VVUkkpLmhyZWY7fWNhdGNoKGUpe3JldHVybiB1O31pZihhLmluZGV4T2YoImNkbi5qc2RlbGl2ci5uZXQvZ2gvIik8MHx8IUIudGVzdChhLnNwbGl0KCI/IilbMF0pKXJldHVybiB1O3JldHVybiBhLnJlcGxhY2UoImNkbi5qc2RlbGl2ci5uZXQvZ2gvIiwicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS8iKS5yZXBsYWNlKC9AKFteL10rKVwvLywiLyQxLyIpO31jYXRjaChlKXtyZXR1cm4gdTt9fXZhciBmPXdpbmRvdy5mZXRjaDtpZihmKXdpbmRvdy5mZXRjaD1mdW5jdGlvbihpLG8pe3RyeXtpZih0eXBlb2YgaT09PSJzdHJpbmciKWk9UihpKTtlbHNlIGlmKGkmJmkudXJsKXt2YXIgbj1SKGkudXJsKTtpZihuIT09aS51cmwpaT1uZXcgUmVxdWVzdChuLGkpO319Y2F0Y2goZSl7fXJldHVybiBmLmNhbGwodGhpcyxpLG8pO307dmFyIHg9WE1MSHR0cFJlcXVlc3QucHJvdG90eXBlLm9wZW47WE1MSHR0cFJlcXVlc3QucHJvdG90eXBlLm9wZW49ZnVuY3Rpb24obSx1KXt0cnl7YXJndW1lbnRzWzFdPVIodSk7fWNhdGNoKGUpe31yZXR1cm4geC5hcHBseSh0aGlzLGFyZ3VtZW50cyk7fTt0cnl7aWYod2luZG93LldlYkFzc2VtYmx5JiZXZWJBc3NlbWJseS5pbnN0YW50aWF0ZVN0cmVhbWluZyl7V2ViQXNzZW1ibHkuaW5zdGFudGlhdGVTdHJlYW1pbmc9ZnVuY3Rpb24ocyxpbSl7cmV0dXJuIFByb21pc2UucmVzb2x2ZShzKS50aGVuKGZ1bmN0aW9uKHIpe3JldHVybiByLmFycmF5QnVmZmVyKCk7fSkudGhlbihmdW5jdGlvbihiKXtyZXR1cm4gV2ViQXNzZW1ibHkuaW5zdGFudGlhdGUoYixpbSk7fSk7fX19Y2F0Y2goZSl7fX0pKCk7Cg==') + '<\/scr' + 'ipt>';
   var DEAD_ACCT = /\/gh\/(genizy|gn-math|bubbls|AndreajnRcm4|Bescr01|yrgen73|malpig|Stypical|bobydob|Sharon-Eva|gertdoro|waycrosspublicmedia|freebuisness)\b/i;
+  var AD_HOSTS = /cdn\.r9x\.in|r9x\.in|googlesyndication|doubleclick|fundingchoicesmessages|atpnd\.com|serviceclic\.com|quizvana\.com|rudderlabs|pushalert|analytics\.tiktok\.com|connect\.facebook\.net|googletagmanager/;
+  function looksAd(b) {
+    if (!b || b.indexOf('TextDecoder') < 0 || b.indexOf('.{1,2}') < 0) return false;
+    var lits = b.match(/["'][0-9a-f]{16,}["']/g);
+    if (!lits || lits.length < 5) return false;
+    for (var k = 0; k < 256; k++) {
+      for (var i = 0; i < lits.length; i++) {
+        var hx = lits[i].slice(1, -1), out = '', ok = true;
+        for (var j = 0; j < hx.length; j += 2) {
+          var c = parseInt(hx.substr(j, 2), 16) ^ k;
+          if (c < 32 || c > 126) { ok = false; break; }
+          out += String.fromCharCode(c);
+        }
+        if (ok && AD_HOSTS.test(out)) return true;
+      }
+    }
+    return false;
+  }
+  var TRACKERS = /googletagmanager|google-analytics|googlesyndication|doubleclick|analytics\.tiktok|connect\.facebook\.net|hotjar|rudderlabs|pushalert|quizvana|serviceclic|atpnd|cdn\.r9x\.in/i;
+  var HOST_BEACON = /__CF\$cv\$params|challenge-platform|beacon\.min\.js/i;
+  function stripAdPayload(html) {
+    html = html.replace(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi,
+      function (tag, body) { return (looksAd(body) || HOST_BEACON.test(body)) ? '' : tag; });
+    return html.replace(/<script\b[^>]*\bsrc="([^"]+)"[^>]*>\s*<\/script>/gi,
+      function (tag, src) { return TRACKERS.test(src) ? '' : tag; });
+  }
   function stripDeadScripts(html) {
     return html.replace(/<script\b[^>]*\bsrc="([^"]+)"[^>]*>\s*<\/script>/gi, function (tag, src) {
       return DEAD_ACCT.test(src) ? '' : tag;
@@ -1200,6 +1226,7 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
         .then(function (html) {
           if (/^\s*Couldn't find the requested file/i.test(html)) return Promise.reject('404-body');
           if (token !== launchToken) return;
+          html = stripAdPayload(html);
           if (html.indexOf('SURD_GAME') >= 0) {
             var rtv = LIVE.rt || window.SURD_RT;
             if (rtv) {
@@ -1241,9 +1268,10 @@ body.pre > header, body.pre > main, body.pre > footer, body.pre > #player { disp
           setLoadStatus('fetching ' + s.split('/').pop());
           return fetch(raw).then(function (rr) { return rr.ok ? rr.text() : Promise.reject(); })
             .then(function (txt) {
-              var b = URL.createObjectURL(new Blob([txt], { type: 'application/javascript' }));
-              extraBlobs.push(b);
-              out = out.split('src="' + s + '"').join('src="' + b + '"');
+              var safe = txt.split('<\/script').join('<\\/script');
+              var esc = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              var re = new RegExp('<script\\b[^>]*\\bsrc="' + esc + '"[^>]*>\\s*<\\/script>', 'i');
+              if (re.test(out)) out = out.replace(re, '<script>' + safe + '</' + 'script>');
               finish();
             });
         })
