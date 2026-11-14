@@ -728,34 +728,9 @@
             } else fixEl(n);
           }
         }
-        function styleBoot() {
-          var b = document.getElementById("surd-boot");
-          if (!b || b.__dup) return;
-          b.__dup = 1;
-          b.style.background = "#16181d";
-          b.style.color = "#e6f1ff";
-          var mark = b.firstElementChild;
-          if (mark) {
-            mark.style.background = "transparent";
-            mark.innerHTML = '<svg viewBox="0 0 48 48" width="56" height="56"><path d="M19 8 L37 24 L19 40 L1 24Z" fill="none" stroke="#00e5ff" stroke-opacity=".45" stroke-width="2.5"/><path d="M29 8 L47 24 L29 40 L11 24Z" fill="#0f294a" stroke="#00e5ff" stroke-width="2.5"/></svg>';
-            var name = document.createElement("div");
-            name.textContent = "DUPLICITY";
-            name.style.cssText = "font:800 18px system-ui,sans-serif;letter-spacing:3px;color:#00e5ff;text-shadow:0 0 12px rgba(0,229,255,.25)";
-            mark.insertAdjacentElement("afterend", name);
-          }
-          var fill = b.querySelector("span");
-          if (fill) {
-            fill.style.background = "#00e5ff";
-            if (fill.parentElement) {
-              fill.parentElement.style.background = "#1e2128";
-              fill.parentElement.style.border = "1px solid #00e5ff";
-            }
-          }
-        }
         function run() {
           var t = document.title; if (t && /surd/i.test(t)) document.title = fix(t);
           walk(document.documentElement);
-          styleBoot();
         }
         new MutationObserver(function(muts) {
           for (var i = 0; i < muts.length; i++) {
@@ -763,7 +738,6 @@
             if (m.type === "characterData") { fixText(m.target); continue; }
             for (var j = 0; j < m.addedNodes.length; j++) walk(m.addedNodes[j]);
           }
-          styleBoot();
         }).observe(document, { childList: true, subtree: true, characterData: true });
         run();
         document.addEventListener("DOMContentLoaded", run);
@@ -771,8 +745,20 @@
       } catch (e) {}
     }
 
+    function bootCss() {
+      return [
+        '#surd-boot{background:#16181d!important;color:#e6f1ff!important}',
+        '#surd-boot::before{content:"DUPLICITY";order:-1;font:800 18px system-ui,sans-serif;letter-spacing:3px;color:#00e5ff;text-shadow:0 0 12px rgba(0,229,255,.25)}',
+        '#surd-boot>div:first-child{order:-2;width:56px!important;height:56px!important;border-radius:0!important;background:transparent url("' + LOGO_URI + '") center/contain no-repeat!important}',
+        '#surd-boot>div:first-child>*{display:none!important}',
+        '#surd-boot>div:nth-child(2){background:#1e2128!important;border:1px solid #00e5ff!important}',
+        '#surd-boot span{background:#00e5ff!important}',
+        '#surd-boot [style*="c2f04a" i],#surd-boot [style*="194, 240, 74"]{background:#00e5ff!important;border-color:#00e5ff!important}'
+      ].join("\n");
+    }
+
     function injectBrand(html) {
-      const tag = "<script>(" + brandPatch.toString() + ")(" + JSON.stringify(LOGO_URI) + ");<\/script>";
+      const tag = "<style>" + bootCss() + "</style><script>(" + brandPatch.toString() + ")(" + JSON.stringify(LOGO_URI) + ");<\/script>";
       if (/<head[^>]*>/i.test(html)) return html.replace(/<head([^>]*)>/i, function(m) { return m + tag; });
       return tag + html;
     }
