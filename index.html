@@ -688,6 +688,9 @@
           });
         }
         function fixText(n) {
+          var pt = n.parentNode && n.parentNode.tagName;
+          if (pt === "SCRIPT" || pt === "STYLE" || pt === "TEXTAREA" || pt === "NOSCRIPT") return;
+          RX.lastIndex = 0;
           if (n.nodeValue && RX.test(n.nodeValue)) { RX.lastIndex = 0; n.nodeValue = fix(n.nodeValue); }
           RX.lastIndex = 0;
         }
@@ -704,7 +707,7 @@
             if (v && /surd/i.test(v)) el.setAttribute(a, fix(v));
           });
           var id = (el.id || "") + " " + (typeof el.className === "string" ? el.className : "");
-          if (/surd/i.test(id) && tag !== "BODY" && tag !== "HTML" && !el.children.length && !el.textContent.trim()) {
+          if (/surd/i.test(id) && /logo/i.test(id) && tag !== "BODY" && tag !== "HTML" && !el.children.length && !el.textContent.trim()) {
             el.style.backgroundImage = "url('" + logo + "')";
             el.style.backgroundSize = "contain";
             el.style.backgroundRepeat = "no-repeat";
@@ -725,15 +728,42 @@
             } else fixEl(n);
           }
         }
+        function styleBoot() {
+          var b = document.getElementById("surd-boot");
+          if (!b || b.__dup) return;
+          b.__dup = 1;
+          b.style.background = "#16181d";
+          b.style.color = "#e6f1ff";
+          var mark = b.firstElementChild;
+          if (mark) {
+            mark.style.background = "transparent";
+            mark.innerHTML = '<svg viewBox="0 0 48 48" width="56" height="56"><path d="M19 8 L37 24 L19 40 L1 24Z" fill="none" stroke="#00e5ff" stroke-opacity=".45" stroke-width="2.5"/><path d="M29 8 L47 24 L29 40 L11 24Z" fill="#0f294a" stroke="#00e5ff" stroke-width="2.5"/></svg>';
+            var name = document.createElement("div");
+            name.textContent = "DUPLICITY";
+            name.style.cssText = "font:800 18px system-ui,sans-serif;letter-spacing:3px;color:#00e5ff;text-shadow:0 0 12px rgba(0,229,255,.25)";
+            mark.insertAdjacentElement("afterend", name);
+          }
+          var fill = b.querySelector("span");
+          if (fill) {
+            fill.style.background = "#00e5ff";
+            if (fill.parentElement) {
+              fill.parentElement.style.background = "#1e2128";
+              fill.parentElement.style.border = "1px solid #00e5ff";
+            }
+          }
+        }
         function run() {
           var t = document.title; if (t && /surd/i.test(t)) document.title = fix(t);
           walk(document.documentElement);
+          styleBoot();
         }
-        var pending = false;
         new MutationObserver(function(muts) {
-          if (pending) return;
-          pending = true;
-          setTimeout(function() { pending = false; run(); }, 50);
+          for (var i = 0; i < muts.length; i++) {
+            var m = muts[i];
+            if (m.type === "characterData") { fixText(m.target); continue; }
+            for (var j = 0; j < m.addedNodes.length; j++) walk(m.addedNodes[j]);
+          }
+          styleBoot();
         }).observe(document, { childList: true, subtree: true, characterData: true });
         run();
         document.addEventListener("DOMContentLoaded", run);
