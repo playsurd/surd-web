@@ -352,6 +352,25 @@
     @keyframes plslide { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
     #playerLoading .pl-status { color: var(--text-muted); font-size: 0.85rem; }
 
+    .chat-list {
+      background-color: var(--bg-main);
+      border: 1px solid var(--cyan-dim);
+      border-radius: var(--radius);
+      height: 280px;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.88rem;
+    }
+    .chat-msg { line-height: 1.4; word-break: break-word; }
+    .chat-msg b { color: var(--cyan); margin-right: 6px; }
+    .chat-msg time { color: var(--text-muted); font-size: 0.72rem; margin-left: 6px; }
+    .chat-note { color: var(--text-muted); font-size: 0.8rem; }
+    .chat-error { color: #ff7b7b; font-size: 0.85rem; min-height: 1.1em; }
+    .hidden { display: none !important; }
+
     footer {
       background-color: var(--bg-surface);
       border-top: 1px solid var(--cyan);
@@ -376,6 +395,7 @@
         <option value="">All Collections</option>
       </select>
       <button id="randomBtn">Random Game</button>
+      <button id="chatBtn">Chat</button>
       <button id="infoBtn">Info</button>
       <button id="settingsBtn">Settings</button>
     </div>
@@ -413,6 +433,47 @@
       <div class="setting-group">
         <h3>made by a_312</h3>
         <div class="encoded-box">lz nzc hqzsuy dfb jwp rr xtnwfm mflm nzc jioc hugymf ur phmepkv, khljlpea. k ktl ey rzvvivrhx pe ifmgprvxyaqv57@iprndy.ug, q lyooip gqc pyqxtcmt, igb lz nzc tmtak ije q yqej gi ism dmlr rz bj idqegwctd bq bxyfb nzc gdxpbnwtvi q dlrq pmwwb pmuepcwwvwq. dfa sikt mfh ltymiiwcv, nwta yqej oczpta jx rky alav uxqvuvp q nmtth qwttg im rkch dkjwhj</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="chatModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Chat</h2>
+        <button onclick="closeModal('chatModal')">Close</button>
+      </div>
+
+      <div class="setting-group" id="chatOff">
+        <p class="chat-note">Chat isn't set up yet.</p>
+      </div>
+
+      <div id="chatOn" class="hidden" style="display:flex;flex-direction:column;gap:16px">
+        <div class="chat-list" id="chatList"></div>
+
+        <div class="setting-group" id="chatAuth">
+          <h3>Sign in to chat</h3>
+          <div class="row">
+            <input type="text" id="chatUser" placeholder="Username (3-20: a-z, 0-9, _)" maxlength="20" autocomplete="username" />
+            <input type="password" id="chatPass" placeholder="Password (6+ characters)" autocomplete="current-password" />
+          </div>
+          <div class="row">
+            <button id="chatSignIn">Sign in</button>
+            <button id="chatSignUp">Create account</button>
+          </div>
+          <div class="chat-error" id="chatAuthErr"></div>
+          <p class="chat-note">Don't reuse a password from anywhere else. There's no password reset, so don't forget it.</p>
+        </div>
+
+        <div class="setting-group hidden" id="chatCompose">
+          <div class="chat-note">Signed in as <b id="chatMe" style="color:var(--cyan)"></b></div>
+          <div class="row">
+            <input type="text" id="chatText" placeholder="Say something..." maxlength="300" />
+            <button id="chatSend">Send</button>
+            <button id="chatSignOut">Sign out</button>
+          </div>
+          <div class="chat-error" id="chatSendErr"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -847,6 +908,134 @@
     document.getElementById("panicUrl").value = localStorage.getItem("duplicity_panic_url") || "";
 
     loadManifest();
+  </script>
+  <script type="module">
+    // ---- Paste your Firebase web app config here (see setup steps) ----
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDy1LIzGX0dLA37GiLHZldzHQHSYyk3bDc",
+      authDomain: "duplicity312.firebaseapp.com",
+      projectId: "duplicity312",
+      storageBucket: "duplicity312.firebasestorage.app",
+      messagingSenderId: "635072406525",
+      appId: "1:635072406525:web:c903f255a62ecd6b726f94"
+    };
+    // e.g. { apiKey: "...", authDomain: "...", projectId: "...", appId: "..." }
+    // -------------------------------------------------------------------
+
+    const $ = function(id) { return document.getElementById(id); };
+    $("chatBtn").onclick = function() { openModal("chatModal"); };
+
+    if (FIREBASE_CONFIG) {
+      const V = "10.12.2";
+      const base = "https://www.gstatic.com/firebasejs/" + V + "/";
+      const [{ initializeApp }, A, F] = await Promise.all([
+        import(base + "firebase-app.js"),
+        import(base + "firebase-auth.js"),
+        import(base + "firebase-firestore.js")
+      ]);
+
+      const app = initializeApp(FIREBASE_CONFIG);
+      const auth = A.getAuth(app);
+      const db = F.getFirestore(app);
+      const DOMAIN = "@users.duplicity.invalid";
+      const NAME_RX = /^[a-z0-9_]{3,20}$/;
+
+      $("chatOff").classList.add("hidden");
+      $("chatOn").classList.remove("hidden");
+
+      function cleanName() { return $("chatUser").value.trim().toLowerCase(); }
+
+      function authError(e) {
+        const c = e && e.code || "";
+        if (c === "auth/email-already-in-use") return "That username is taken.";
+        if (c === "auth/weak-password") return "Password must be at least 6 characters.";
+        if (c === "auth/too-many-requests") return "Too many tries. Wait a bit and try again.";
+        if (c === "auth/network-request-failed") return "Network problem. Try again.";
+        if (c === "auth/invalid-credential" || c === "auth/wrong-password" || c === "auth/user-not-found") return "Wrong username or password.";
+        return "Something went wrong. Try again.";
+      }
+
+      async function doAuth(create) {
+        const err = $("chatAuthErr");
+        err.textContent = "";
+        const name = cleanName();
+        const pass = $("chatPass").value;
+        if (!NAME_RX.test(name)) { err.textContent = "Username must be 3-20 characters: letters, numbers, underscore."; return; }
+        if (pass.length < 6) { err.textContent = "Password must be at least 6 characters."; return; }
+        try {
+          if (create) await A.createUserWithEmailAndPassword(auth, name + DOMAIN, pass);
+          else await A.signInWithEmailAndPassword(auth, name + DOMAIN, pass);
+          $("chatPass").value = "";
+        } catch (e) { err.textContent = authError(e); }
+      }
+
+      $("chatSignIn").onclick = function() { doAuth(false); };
+      $("chatSignUp").onclick = function() { doAuth(true); };
+      $("chatPass").addEventListener("keydown", function(e) { if (e.key === "Enter") doAuth(false); });
+      $("chatSignOut").onclick = function() { A.signOut(auth); };
+
+      A.onAuthStateChanged(auth, function(user) {
+        const me = user && user.email ? user.email.split("@")[0] : "";
+        $("chatAuth").classList.toggle("hidden", !!user);
+        $("chatCompose").classList.toggle("hidden", !user);
+        $("chatMe").textContent = me;
+      });
+
+      let lastSend = 0;
+      async function send() {
+        const err = $("chatSendErr");
+        err.textContent = "";
+        const user = auth.currentUser;
+        const text = $("chatText").value.trim();
+        if (!user || !text) return;
+        if (Date.now() - lastSend < 1500) { err.textContent = "Slow down a little."; return; }
+        lastSend = Date.now();
+        try {
+          await F.addDoc(F.collection(db, "messages"), {
+            uid: user.uid,
+            name: user.email.split("@")[0],
+            text: text.slice(0, 300),
+            createdAt: F.serverTimestamp()
+          });
+          $("chatText").value = "";
+        } catch (e) { err.textContent = "Couldn't send that message."; }
+      }
+      $("chatSend").onclick = send;
+      $("chatText").addEventListener("keydown", function(e) { if (e.key === "Enter") send(); });
+
+      const q = F.query(F.collection(db, "messages"), F.orderBy("createdAt", "desc"), F.limit(50));
+      F.onSnapshot(q, function(snap) {
+        const list = $("chatList");
+        const stick = list.scrollTop + list.clientHeight >= list.scrollHeight - 30;
+        const docs = [];
+        snap.forEach(function(d) { docs.push(d.data()); });
+        docs.reverse();
+        list.innerHTML = "";
+        docs.forEach(function(m) {
+          const row = document.createElement("div");
+          row.className = "chat-msg";
+          const who = document.createElement("b");
+          who.textContent = m.name;
+          const body = document.createElement("span");
+          body.textContent = m.text;
+          row.appendChild(who);
+          row.appendChild(body);
+          if (m.createdAt && m.createdAt.toDate) {
+            const t = document.createElement("time");
+            t.textContent = m.createdAt.toDate().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+            row.appendChild(t);
+          }
+          list.appendChild(row);
+        });
+        if (stick) list.scrollTop = list.scrollHeight;
+      }, function() {
+        $("chatList").innerHTML = "";
+        const n = document.createElement("div");
+        n.className = "chat-note";
+        n.textContent = "Couldn't load messages.";
+        $("chatList").appendChild(n);
+      });
+    }
   </script>
 </body>
 </html>
