@@ -369,6 +369,7 @@
     .chat-msg time { color: var(--text-muted); font-size: 0.72rem; margin-left: 6px; }
     .chat-note { color: var(--text-muted); font-size: 0.8rem; }
     .chat-error { color: #ff7b7b; font-size: 0.85rem; min-height: 1.1em; }
+    .badge { display: inline-block; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--bg-main); background: var(--cyan); border-radius: 4px; padding: 1px 5px; margin-right: 6px; vertical-align: 1px; }
     .hidden { display: none !important; }
 
     footer {
@@ -939,6 +940,8 @@
       const db = F.getFirestore(app);
       const DOMAIN = "@users.duplicity.invalid";
       const NAME_RX = /^[a-z0-9_]{3,20}$/;
+      const CREATOR = "a_312";
+      const KEEP_DAYS = 7;
 
       $("chatOff").classList.add("hidden");
       $("chatOn").classList.remove("hidden");
@@ -978,7 +981,7 @@
         const me = user && user.email ? user.email.split("@")[0] : "";
         $("chatAuth").classList.toggle("hidden", !!user);
         $("chatCompose").classList.toggle("hidden", !user);
-        $("chatMe").textContent = me;
+        $("chatMe").textContent = me + (me === CREATOR ? " (Creator)" : "");
       });
 
       let lastSend = 0;
@@ -995,7 +998,8 @@
             uid: user.uid,
             name: user.email.split("@")[0],
             text: text.slice(0, 300),
-            createdAt: F.serverTimestamp()
+            createdAt: F.serverTimestamp(),
+            expireAt: F.Timestamp.fromMillis(Date.now() + KEEP_DAYS * 86400000)
           });
           $("chatText").value = "";
         } catch (e) { err.textContent = "Couldn't send that message."; }
@@ -1018,6 +1022,12 @@
           who.textContent = m.name;
           const body = document.createElement("span");
           body.textContent = m.text;
+          if (m.name === CREATOR) {
+            const bd = document.createElement("span");
+            bd.className = "badge";
+            bd.textContent = "Creator";
+            row.appendChild(bd);
+          }
           row.appendChild(who);
           row.appendChild(body);
           if (m.createdAt && m.createdAt.toDate) {
