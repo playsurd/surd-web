@@ -370,6 +370,11 @@
     .chat-note { color: var(--text-muted); font-size: 0.8rem; }
     .chat-error { color: #ff7b7b; font-size: 0.85rem; min-height: 1.1em; }
     .badge { display: inline-block; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--bg-main); background: var(--cyan); border-radius: 4px; padding: 1px 5px; margin-right: 6px; vertical-align: 1px; }
+    .badge.admin { background: #1f8bff; color: #ffffff; }
+    .badge.moderator { background: #1b3a8a; color: #dbe8ff; }
+    .badge.creator.ghost { opacity: 0.45; }
+    .chat-ok { color: #7bffb0; font-size: 0.85rem; min-height: 1.1em; }
+    .chat-system { color: var(--text-muted); font-style: italic; }
     .hidden { display: none !important; }
 
     footer {
@@ -468,8 +473,9 @@
 
         <div class="setting-group hidden" id="chatCompose">
           <div class="chat-note">Signed in as <b id="chatMe" style="color:var(--cyan)"></b></div>
+          <div class="chat-error" id="chatStatus"></div>
           <div class="row">
-            <input type="text" id="chatText" placeholder="Say something..." maxlength="300" />
+            <input type="text" id="chatText" placeholder="Say something... (type /help for commands)" maxlength="300" />
             <button id="chatSend">Send</button>
             <button id="chatSignOut">Sign out</button>
           </div>
@@ -758,6 +764,7 @@
     }
 
     function injectBrand(html) {
+      if (/[?&]raw=1\b/.test(location.search)) return html; // debug: load games with no Duplicity patch
       const tag = "<style>" + bootCss() + "</style><script>(" + brandPatch.toString() + ")(" + JSON.stringify(LOGO_URI) + ");<\/script>";
       if (/<head[^>]*>/i.test(html)) return html.replace(/<head([^>]*)>/i, function(m) { return m + tag; });
       return tag + html;
@@ -1103,7 +1110,7 @@
     loadManifest();
   </script>
   <script type="module">
-    // ---- Paste your Firebase web app config here (see setup steps) ----
+    // ---- Firebase web app config ----
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyDy1LIzGX0dLA37GiLHZldzHQHSYyk3bDc",
       authDomain: "duplicity312.firebaseapp.com",
@@ -1112,8 +1119,7 @@
       messagingSenderId: "635072406525",
       appId: "1:635072406525:web:c903f255a62ecd6b726f94"
     };
-    // e.g. { apiKey: "...", authDomain: "...", projectId: "...", appId: "..." }
-    // -------------------------------------------------------------------
+    // ---------------------------------
 
     const $ = function(id) { return document.getElementById(id); };
     $("chatBtn").onclick = function() { openModal("chatModal"); };
@@ -1135,10 +1141,30 @@
       const CREATOR = "a_312";
       const KEEP_DAYS = 7;
 
+      let rolesMap = {};
+      let lastDocs = [];
+      let banExists = false;
+      let banUntil = null;
+      let muteUntil = null;
+      let disguised = false;
+      let unsubs = [];
+      let muteTimer = null;
+
       $("chatOff").classList.add("hidden");
       $("chatOn").classList.remove("hidden");
 
+      function myName() {
+        const u = auth.currentUser;
+        return u && u.email ? u.email.split("@")[0] : "";
+      }
+      function roleOfName(n) { return n === CREATOR ? "creator" : (rolesMap[n] || ""); }
       function cleanName() { return $("chatUser").value.trim().toLowerCase(); }
+
+      function notice(text, ok) {
+        const el = $("chatSendErr");
+        el.className = ok ? "chat-ok" : "chat-error";
+        el.textContent = text;
+      }
 
       function authError(e) {
         const c = e && e.code || "";
@@ -1169,57 +1195,216 @@
       $("chatPass").addEventListener("keydown", function(e) { if (e.key === "Enter") doAuth(false); });
       $("chatSignOut").onclick = function() { A.signOut(auth); };
 
+      // ---- Own ban / mute status ----
+      function fmtWhen(d) {
+        return d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+      }
+      function updateStatus() {
+        const now = Date.now();
+        const banActive = banExists && (!banUntil || banUntil.getTime() > now);
+        const muted = !!(muteUntil && muteUntil.getTime() > now);
+        let msg = "";
+        if (banActive) msg = banUntil ? "You are banned until " + fmtWhen(banUntil) + "." : "You are banned from chat.";
+        else if (muted) msg = "You are muted until " + muteUntil.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + ".";
+        $("chatStatus").textContent = msg;
+        const block = banActive || muted;
+        $("chatText").disabled = block;
+        $("chatSend").disabled = block;
+        clearTimeout(muteTimer);
+        let next = null;
+        if (banActive && banUntil) next = banUntil.getTime();
+        else if (!banActive && muted) next = muteUntil.getTime();
+        if (next) muteTimer = setTimeout(updateStatus, Math.min(next - now + 500, 2147483000));
+      }
+
       A.onAuthStateChanged(auth, function(user) {
+        unsubs.forEach(function(f) { try { f(); } catch (e) {} });
+        unsubs = [];
+        banExists = false;
+        banUntil = null;
+        muteUntil = null;
         const me = user && user.email ? user.email.split("@")[0] : "";
         $("chatAuth").classList.toggle("hidden", !!user);
         $("chatCompose").classList.toggle("hidden", !user);
-        $("chatMe").textContent = me + (me === CREATOR ? " (Creator)" : "");
+        $("chatMe").textContent = me + (roleOfName(me) ? " (" + roleOfName(me) + (me === CREATOR && disguised ? ", disguised" : "") + ")" : "");
+        if (user && me) {
+          unsubs.push(F.onSnapshot(F.doc(db, "bans", me), function(s) {
+            const d = s.exists() ? s.data() : null;
+            banExists = !!d;
+            banUntil = d && d.until && d.until.toDate ? d.until.toDate() : null;
+            updateStatus();
+          }, function() {}));
+          unsubs.push(F.onSnapshot(F.doc(db, "mutes", me), function(s) {
+            const d = s.exists() ? s.data() : null;
+            muteUntil = d && d.until && d.until.toDate ? d.until.toDate() : null;
+            updateStatus();
+          }, function() {}));
+        }
+        updateStatus();
+        renderMessages();
       });
 
+      // ---- Roles (public, used for badges) ----
+      F.onSnapshot(F.collection(db, "roles"), function(snap) {
+        rolesMap = {};
+        snap.forEach(function(d) { const r = d.data().role; if (r) rolesMap[d.id] = r; });
+        const me = myName();
+        if (me) $("chatMe").textContent = me + (roleOfName(me) ? " (" + roleOfName(me) + ")" : "");
+        renderMessages();
+      }, function() {});
+
+      // ---- Creator disguise (public flag, only the creator can change it) ----
+      F.onSnapshot(F.doc(db, "settings", "creator"), function(s) {
+        disguised = s.exists() && !!s.data().disguised;
+        const me = myName();
+        if (me) $("chatMe").textContent = me + (roleOfName(me) ? " (" + roleOfName(me) + (me === CREATOR && disguised ? ", disguised" : "") + ")" : "");
+        renderMessages();
+      }, function() {});
+
+      // ---- Commands ----
+      const HELP_LINES = [
+        "/mute <user> <1-30>   mute for that many minutes (moderators, admins)",
+        "/unmute <user>        (moderators, admins)",
+        "/ban <user> [1-30]    ban forever, or for that many days (admins)",
+        "/unban <user>         (admins)",
+        "/moderator <user>     make a moderator (admins)",
+        "/unmod <user>         remove a moderator (admins)",
+        "/admin <user>         make an admin (creator only)",
+        "/unadmin <user>       remove an admin (creator only)"
+      ];
+      const CREATOR_HELP = "/disguise            hide or show your Creator tag (creator only)";
+
+      async function runCommand(line) {
+        const parts = line.slice(1).trim().split(/\s+/);
+        const cmd = (parts[0] || "").toLowerCase();
+        const me = myName();
+        const isCreator = me === CREATOR;
+        const out = $("chatSendErr");
+        if (cmd === "help") {
+          notice(HELP_LINES.concat(isCreator ? [CREATOR_HELP] : []).join("\n"), true);
+          out.style.whiteSpace = "pre-wrap";
+          return;
+        }
+        out.style.whiteSpace = "";
+        const known = ["ban", "unban", "mute", "unmute", "moderator", "unmod", "admin", "unadmin"];
+        if (isCreator) known.push("disguise");
+        if (known.indexOf(cmd) < 0) { notice("Unknown command. Type /help.", false); return; }
+
+        if (cmd === "disguise") {
+          try {
+            const next = !disguised;
+            await F.setDoc(F.doc(db, "settings", "creator"), { disguised: next });
+            notice(next ? "Creator tag hidden for everyone." : "Creator tag visible again.", true);
+          } catch (e) { notice("That didn't work. Try again.", false); }
+          return;
+        }
+
+        const target = (parts[1] || "").replace(/^@/, "").toLowerCase();
+        if (!NAME_RX.test(target)) { notice("Usage: /" + cmd + " <username>. Type /help.", false); return; }
+        const doc = function(col, id) { return F.doc(db, col, id || target); };
+        const staff = rolesMap[me] === "admin" || rolesMap[me] === "moderator";
+        const guarded = target === CREATOR && !isCreator && staff;
+        try {
+          if (cmd === "ban") {
+            let days = null;
+            if (parts[2] !== undefined) {
+              days = parseInt(parts[2], 10);
+              if (!(days >= 1 && days <= 30) || String(days) !== parts[2]) { notice("Usage: /ban <username> [1-30] (days; leave out for a permanent ban).", false); return; }
+            }
+            if (guarded) {
+              await F.setDoc(doc("bans", me), { by: "auto", at: F.serverTimestamp(), until: F.Timestamp.fromMillis(Date.now() + 86400000) });
+              notice("You can't ban the creator. The ban was applied to you instead, for 1 day.", false);
+              return;
+            }
+            const data = { by: me, at: F.serverTimestamp() };
+            if (days) data.until = F.Timestamp.fromMillis(Date.now() + days * 86400000);
+            await F.setDoc(doc("bans"), data);
+            notice("Banned " + target + (days ? " for " + days + " day" + (days === 1 ? "" : "s") : " permanently") + ".", true);
+          } else if (cmd === "unban") {
+            await F.deleteDoc(doc("bans"));
+            notice("Unbanned " + target + ".", true);
+          } else if (cmd === "mute") {
+            const mins = parseInt(parts[2], 10);
+            if (!(mins >= 1 && mins <= 30) || String(mins) !== parts[2]) { notice("Usage: /mute <username> <1-30> (minutes).", false); return; }
+            const until = F.Timestamp.fromMillis(Date.now() + mins * 60000);
+            if (guarded) {
+              await F.setDoc(doc("mutes", me), { by: "auto", until: until });
+              notice("You can't mute the creator. The mute was applied to you instead, for " + mins + " minute" + (mins === 1 ? "" : "s") + ".", false);
+              return;
+            }
+            await F.setDoc(doc("mutes"), { by: me, until: until });
+            notice("Muted " + target + " for " + mins + " minute" + (mins === 1 ? "" : "s") + ".", true);
+          } else if (cmd === "unmute") {
+            await F.deleteDoc(doc("mutes"));
+            notice("Unmuted " + target + ".", true);
+          } else if (cmd === "moderator" || cmd === "admin") {
+            await F.setDoc(doc("roles"), { role: cmd, by: me, at: F.serverTimestamp() });
+            notice(target + " is now " + (cmd === "admin" ? "an admin" : "a moderator") + ".", true);
+          } else if (cmd === "unmod" || cmd === "unadmin") {
+            await F.deleteDoc(doc("roles"));
+            notice("Removed " + (cmd === "unadmin" ? "admin" : "moderator") + " from " + target + ".", true);
+          }
+        } catch (e) {
+          notice(e && e.code === "permission-denied" ? "You don't have permission to do that." : "That didn't work. Try again.", false);
+        }
+      }
+
+      // ---- Sending ----
       let lastSend = 0;
       async function send() {
-        const err = $("chatSendErr");
-        err.textContent = "";
         const user = auth.currentUser;
         const text = $("chatText").value.trim();
         if (!user || !text) return;
-        if (Date.now() - lastSend < 1500) { err.textContent = "Slow down a little."; return; }
+        if (text.charAt(0) === "/") {
+          $("chatText").value = "";
+          runCommand(text);
+          return;
+        }
+        notice("", true);
+        if (Date.now() - lastSend < 1500) { notice("Slow down a little.", false); return; }
         lastSend = Date.now();
         try {
           await F.addDoc(F.collection(db, "messages"), {
             uid: user.uid,
-            name: user.email.split("@")[0],
+            name: myName(),
             text: text.slice(0, 300),
             createdAt: F.serverTimestamp(),
             expireAt: F.Timestamp.fromMillis(Date.now() + KEEP_DAYS * 86400000)
           });
           $("chatText").value = "";
-        } catch (e) { err.textContent = "Couldn't send that message."; }
+        } catch (e) { notice("Couldn't send that message.", false); }
       }
       $("chatSend").onclick = send;
       $("chatText").addEventListener("keydown", function(e) { if (e.key === "Enter") send(); });
 
-      const q = F.query(F.collection(db, "messages"), F.orderBy("createdAt", "desc"), F.limit(50));
-      F.onSnapshot(q, function(snap) {
+      // ---- Message list ----
+      function badgeFor(n) {
+        const r = roleOfName(n);
+        if (!r) return null;
+        let ghost = false;
+        if (r === "creator" && disguised) {
+          if (myName() !== CREATOR) return null;
+          ghost = true;
+        }
+        const b = document.createElement("span");
+        b.className = "badge " + r + (ghost ? " ghost" : "");
+        b.textContent = r === "creator" ? (ghost ? "Creator (hidden)" : "Creator") : r === "admin" ? "Admin" : "Mod";
+        return b;
+      }
+
+      function renderMessages() {
         const list = $("chatList");
         const stick = list.scrollTop + list.clientHeight >= list.scrollHeight - 30;
-        const docs = [];
-        snap.forEach(function(d) { docs.push(d.data()); });
-        docs.reverse();
         list.innerHTML = "";
-        docs.forEach(function(m) {
+        lastDocs.forEach(function(m) {
           const row = document.createElement("div");
           row.className = "chat-msg";
+          const bd = badgeFor(m.name);
+          if (bd) row.appendChild(bd);
           const who = document.createElement("b");
           who.textContent = m.name;
           const body = document.createElement("span");
           body.textContent = m.text;
-          if (m.name === CREATOR) {
-            const bd = document.createElement("span");
-            bd.className = "badge";
-            bd.textContent = "Creator";
-            row.appendChild(bd);
-          }
           row.appendChild(who);
           row.appendChild(body);
           if (m.createdAt && m.createdAt.toDate) {
@@ -1230,6 +1415,15 @@
           list.appendChild(row);
         });
         if (stick) list.scrollTop = list.scrollHeight;
+      }
+
+      const q = F.query(F.collection(db, "messages"), F.orderBy("createdAt", "desc"), F.limit(50));
+      F.onSnapshot(q, function(snap) {
+        const docs = [];
+        snap.forEach(function(d) { docs.push(d.data()); });
+        docs.reverse();
+        lastDocs = docs;
+        renderMessages();
       }, function() {
         $("chatList").innerHTML = "";
         const n = document.createElement("div");
