@@ -1242,7 +1242,23 @@
         }
         updateStatus();
         renderMessages();
+        if (user && me === CREATOR) sweepExpired();
       });
+
+      // Creator-only cleanup of expired messages (replaces a TTL policy)
+      async function sweepExpired() {
+        try {
+          for (let i = 0; i < 5; i++) {
+            const snap = await F.getDocs(F.query(F.collection(db, "messages"),
+              F.where("expireAt", "<=", F.Timestamp.now()), F.limit(100)));
+            if (snap.empty) break;
+            const batch = F.writeBatch(db);
+            snap.forEach(function(d) { batch.delete(d.ref); });
+            await batch.commit();
+            if (snap.size < 100) break;
+          }
+        } catch (e) { console.warn("sweep failed", e); }
+      }
 
       // ---- Roles (public, used for badges) ----
       F.onSnapshot(F.collection(db, "roles"), function(snap) {
