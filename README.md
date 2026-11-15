@@ -2,3 +2,7 @@ this is a game and code website based off of surd, all credit for that relativly
 
 update, 11/14/2026
 added chat feature
+
+update, 11/14/2026
+updated a bunch of loading stuff redid some stuff and clarified branding
+swapped over from a bunch of old hosting to hosting by me
