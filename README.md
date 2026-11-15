@@ -6,5 +6,5 @@ update, 11/14/2026
 added chat feature updated a bunch of loading stuff redid some stuff and clarified branding swapped over from a bunch of old hosting to hosting by me updated chat stuff added moderator permissions and admin permissions
 
 update, 11/15/2026
-added like 500 new games, game images are tbd
+added like 500 new games, game images are tbd finished crossing over from private repos to my repos
 
