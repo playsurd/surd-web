@@ -6,3 +6,6 @@ added chat feature
 update, 11/14/2026
 updated a bunch of loading stuff redid some stuff and clarified branding
 swapped over from a bunch of old hosting to hosting by me
+
+update, 11/14/2026
+updated chat stuff added moderator permissions and admin permissions
