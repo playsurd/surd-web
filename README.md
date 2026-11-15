@@ -1,11 +1,4 @@
 this is a game and code website based off of surd, all credit for that relativly larrge portion of what this is goes to the people at ["https://github.com/playsurd/surd-web"] (I hope that's correct link format but IDC if it not I ain't fixing it) if you have questions use the link above, I am just doing this to better understand how this shit works and maybe make a better version of it or something idk, curently it is mostly a copy but i plan to make it quite a lot more, i am using it as a base, i have altered it and changed a lot of things mostly i am using there software model but ill be changing massive portions of it
 
 update, 11/14/2026
-added chat feature
-
-update, 11/14/2026
-updated a bunch of loading stuff redid some stuff and clarified branding
-swapped over from a bunch of old hosting to hosting by me
-
-update, 11/14/2026
-updated chat stuff added moderator permissions and admin permissions
+added chat feature updated a bunch of loading stuff redid some stuff and clarified branding swapped over from a bunch of old hosting to hosting by me updated chat stuff added moderator permissions and admin permissions
