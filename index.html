@@ -593,6 +593,14 @@
       });
     }
 
+    function placeholderCover(title) {
+      var t = String(title || "?"), h = 0, i;
+      for (i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) % 360;
+      var ch = (t.replace(/[^A-Za-z0-9]/g, "")[0] || "?").toUpperCase();
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(' + h + ',45%,22%)"/><stop offset="1" stop-color="hsl(' + ((h + 40) % 360) + ',55%,12%)"/></linearGradient></defs><rect width="200" height="200" fill="url(#g)"/><text x="100" y="132" font-family="Arial,sans-serif" font-size="96" font-weight="700" text-anchor="middle" fill="rgba(255,255,255,.85)">' + ch + '</text></svg>';
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+
     function renderGames() {
       if (!manifest) return;
       const grid = document.getElementById("gamesGrid");
@@ -635,7 +643,8 @@
         });
 
         const img = document.createElement("img");
-        img.src = coverUrl;
+        img.src = game.cover ? coverUrl : placeholderCover(game.title);
+        img.onerror = function() { img.onerror = null; img.src = placeholderCover(game.title); };
         img.alt = game.title;
         img.loading = "lazy";
 
@@ -842,7 +851,9 @@
     function withBase(html, abs) {
       html = stripDeadScripts(html);
       const dir = abs.slice(0, abs.lastIndexOf("/") + 1);
-      const inject = '<base href="' + dir + '">' + ASSET_SHIM + LOG_INJECT;
+      // keep a game's own absolute <base> (wrapper pages that load assets from another repo)
+      const own = html.match(/<base\b[^>]*\bhref\s*=\s*["'](https?:\/\/[^"']+)["'][^>]*>/i);
+      const inject = '<base href="' + (own ? own[1] : dir) + '">' + ASSET_SHIM + LOG_INJECT;
       if (/<base\b[^>]*>/i.test(html)) html = html.replace(/<base\b[^>]*>/i, function() { return inject; });
       else if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, function(m) { return m + inject; });
       else html = inject + html;
