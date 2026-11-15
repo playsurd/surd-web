@@ -681,7 +681,7 @@
     // Runs inside every game page: swaps surd branding for Duplicity.
     function brandPatch(logo) {
       try {
-        var RX = /surd/gi;
+        var RX = /(?<![\w\/@.:-])surd(?![\w\/.-])/gi;
         function fix(s) {
           return s.replace(RX, function(m) {
             return m === m.toUpperCase() ? "DUPLICITY" : (m[0] === m[0].toUpperCase() ? "Duplicity" : "duplicity");
@@ -769,35 +769,215 @@
       if (text) document.getElementById("plStatus").textContent = text;
     }
 
-    async function launchGame(game) {
-      const overlay = document.getElementById("playerOverlay");
-      const frame = document.getElementById("gameFrame");
-      const titleEl = document.getElementById("playerTitle");
-
-      overlay.classList.add("open");
-      titleEl.textContent = "Loading " + game.title + "...";
-      setPlayerLoading(true, "Loading " + game.title + "...");
-
-      const gameUrl = resolveToken(game.src);
-      const baseUrl = gameUrl.substring(0, gameUrl.lastIndexOf("/") + 1);
-
-      try {
-        const res = await fetch(gameUrl);
-        let html = await res.text();
-        if (!/<base\s/i.test(html)) {
-          html = html.replace(/<head([^>]*)>/i, '<head$1><base href="' + baseUrl + '">');
+    // ---- Game launch pipeline (ported from the original portal) ----
+    const ASSET_SHIM = "<scr" + "ipt>" + atob("KGZ1bmN0aW9uKCl7dmFyIEI9L1wuKGRhdGF8d2FzbXx1bml0eXdlYnxwY2t8bWVtfGFzbXxiaW58YnVuZGxlKShcP3wkKS9pO2Z1bmN0aW9uIFIodSl7dHJ5e2lmKHR5cGVvZiB1IT09InN0cmluZyIpcmV0dXJuIHU7dmFyIGE7dHJ5e2E9bmV3IFVSTCh1LGRvY3VtZW50LmJhc2VVUkkpLmhyZWY7fWNhdGNoKGUpe3JldHVybiB1O31pZihhLmluZGV4T2YoImNkbi5qc2RlbGl2ci5uZXQvZ2gvIik8MHx8IUIudGVzdChhLnNwbGl0KCI/IilbMF0pKXJldHVybiB1O3JldHVybiBhLnJlcGxhY2UoImNkbi5qc2RlbGl2ci5uZXQvZ2gvIiwicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS8iKS5yZXBsYWNlKC9AKFteL10rKVwvLywiLyQxLyIpO31jYXRjaChlKXtyZXR1cm4gdTt9fXZhciBmPXdpbmRvdy5mZXRjaDtpZihmKXdpbmRvdy5mZXRjaD1mdW5jdGlvbihpLG8pe3RyeXtpZih0eXBlb2YgaT09PSJzdHJpbmciKWk9UihpKTtlbHNlIGlmKGkmJmkudXJsKXt2YXIgbj1SKGkudXJsKTtpZihuIT09aS51cmwpaT1uZXcgUmVxdWVzdChuLGkpO319Y2F0Y2goZSl7fXJldHVybiBmLmNhbGwodGhpcyxpLG8pO307dmFyIHg9WE1MSHR0cFJlcXVlc3QucHJvdG90eXBlLm9wZW47WE1MSHR0cFJlcXVlc3QucHJvdG90eXBlLm9wZW49ZnVuY3Rpb24obSx1KXt0cnl7YXJndW1lbnRzWzFdPVIodSk7fWNhdGNoKGUpe31yZXR1cm4geC5hcHBseSh0aGlzLGFyZ3VtZW50cyk7fTt0cnl7aWYod2luZG93LldlYkFzc2VtYmx5JiZXZWJBc3NlbWJseS5pbnN0YW50aWF0ZVN0cmVhbWluZyl7V2ViQXNzZW1ibHkuaW5zdGFudGlhdGVTdHJlYW1pbmc9ZnVuY3Rpb24ocyxpbSl7cmV0dXJuIFByb21pc2UucmVzb2x2ZShzKS50aGVuKGZ1bmN0aW9uKHIpe3JldHVybiByLmFycmF5QnVmZmVyKCk7fSkudGhlbihmdW5jdGlvbihiKXtyZXR1cm4gV2ViQXNzZW1ibHkuaW5zdGFudGlhdGUoYixpbSk7fSk7fX19Y2F0Y2goZSl7fX0pKCk7Cg==") + "<\/script>";
+    const LOG_INJECT = "<scr" + "ipt>" + atob("KGZ1bmN0aW9uKCl7ZnVuY3Rpb24gUCh0LG0pe3RyeXtwYXJlbnQucG9zdE1lc3NhZ2Uoe19fc3VyZGxvZzoxLHQ6dCxtOlN0cmluZyhtKS5zbGljZSgwLDQwMCl9LCIqIik7fWNhdGNoKGUpe319d2luZG93LmFkZEV2ZW50TGlzdGVuZXIoImVycm9yIixmdW5jdGlvbihlKXtpZihlJiZlLnRhcmdldCYmZS50YXJnZXQhPT13aW5kb3cpe3ZhciBhPWUudGFyZ2V0LmdldEF0dHJpYnV0ZSYmKGUudGFyZ2V0LmdldEF0dHJpYnV0ZSgic3JjIil8fGUudGFyZ2V0LmdldEF0dHJpYnV0ZSgiaHJlZiIpKTtpZihhKVAoImVyciIsImZhaWxlZCB0byBsb2FkICIrKGUudGFyZ2V0LnNyY3x8ZS50YXJnZXQuaHJlZikpO31lbHNlIFAoImVyciIsKGUmJmUubWVzc2FnZXx8ImVycm9yIikrKGUmJmUuZmlsZW5hbWU/IiAoIitlLmZpbGVuYW1lLnNwbGl0KCIvIikucG9wKCkrIjoiK2UubGluZW5vKyIpIjoiIikpO30sdHJ1ZSk7d2luZG93LmFkZEV2ZW50TGlzdGVuZXIoInVuaGFuZGxlZHJlamVjdGlvbiIsZnVuY3Rpb24oZSl7UCgiZXJyIiwicHJvbWlzZSByZWplY3RlZDogIisoZSYmZS5yZWFzb24mJihlLnJlYXNvbi5tZXNzYWdlfHxlLnJlYXNvbil8fCI/IikpO30pO3ZhciBjZT1jb25zb2xlLmVycm9yO2NvbnNvbGUuZXJyb3I9ZnVuY3Rpb24oKXt0cnl7UCgid2FybiIsW10uc2xpY2UuY2FsbChhcmd1bWVudHMpLmpvaW4oIiAiKSk7fWNhdGNoKHgpe31yZXR1cm4gY2UuYXBwbHkodGhpcyxhcmd1bWVudHMpO307dmFyIEs9bnVsbDt3aW5kb3cuYWRkRXZlbnRMaXN0ZW5lcigibWVzc2FnZSIsZnVuY3Rpb24oZSl7dmFyIGQ9ZS5kYXRhO2lmKGUuc291cmNlPT09cGFyZW50JiZkJiZkLl9fc3VyZHBhbmljJiZ0eXBlb2YgZC5rZXk9PT0ic3RyaW5nIilLPWQua2V5O30pO3dpbmRvdy5hZGRFdmVudExpc3RlbmVyKCJrZXlkb3duIixmdW5jdGlvbihlKXtpZihLJiZlLmtleT09PUspdHJ5e3BhcmVudC5wb3N0TWVzc2FnZSh7X19zdXJkcGFuaWM6MX0sIioiKTt9Y2F0Y2goeCl7fX0sdHJ1ZSk7UCgiaW5mbyIsImdhbWUgZG9jdW1lbnQgbG9hZGVkIik7fSkoKTsK") + "<\/script>";
+  var DEAD_ACCT = /\/gh\/(genizy|gn-math|bubbls|AndreajnRcm4|Bescr01|yrgen73|malpig|Stypical|bobydob|Sharon-Eva|gertdoro|waycrosspublicmedia|freebuisness)\b/i;
+  var AD_HOSTS = /cdn\.r9x\.in|r9x\.in|googlesyndication|doubleclick|fundingchoicesmessages|atpnd\.com|serviceclic\.com|quizvana\.com|rudderlabs|pushalert|analytics\.tiktok\.com|connect\.facebook\.net|googletagmanager/;
+  function looksAd(b) {
+    if (!b || b.indexOf('TextDecoder') < 0 || b.indexOf('.{1,2}') < 0) return false;
+    var lits = b.match(/["'][0-9a-f]{16,}["']/g);
+    if (!lits || lits.length < 5) return false;
+    for (var k = 0; k < 256; k++) {
+      for (var i = 0; i < lits.length; i++) {
+        var hx = lits[i].slice(1, -1), out = '', ok = true;
+        for (var j = 0; j < hx.length; j += 2) {
+          var c = parseInt(hx.substr(j, 2), 16) ^ k;
+          if (c < 32 || c > 126) { ok = false; break; }
+          out += String.fromCharCode(c);
         }
-        html = injectBrand(html);
-        const blob = new Blob([html], { type: "text/html" });
-        frame.onload = function() { setTimeout(function() { setPlayerLoading(false); }, 400); };
-        frame.src = URL.createObjectURL(blob);
-        titleEl.textContent = game.title;
-      } catch (err) {
-        frame.onload = function() { setPlayerLoading(false); };
-        frame.src = gameUrl;
-        titleEl.textContent = game.title;
+        if (ok && AD_HOSTS.test(out)) return true;
       }
     }
+    return false;
+  }
+  var TRACKERS = /googletagmanager|google-analytics|googlesyndication|doubleclick|analytics\.tiktok|connect\.facebook\.net|hotjar|rudderlabs|pushalert|quizvana|serviceclic|atpnd|cdn\.r9x\.in/i;
+  var HOST_BEACON = /__CF\$cv\$params|challenge-platform|beacon\.min\.js/i;
+  function stripAdPayload(html) {
+    html = html.replace(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi,
+      function (tag, body) { return (looksAd(body) || HOST_BEACON.test(body)) ? '' : tag; });
+    return html.replace(/<script\b[^>]*\bsrc="([^"]+)"[^>]*>\s*<\/script>/gi,
+      function (tag, src) { return TRACKERS.test(src) ? '' : tag; });
+  }
+  function stripDeadScripts(html) {
+    return html.replace(/<script\b[^>]*\bsrc="([^"]+)"[^>]*>\s*<\/script>/gi, function (tag, src) {
+      return DEAD_ACCT.test(src) ? '' : tag;
+    });
+  }
+
+    let launchToken = 0;
+    let lastBlobUrl = null;
+
+    function candidates(url) {
+      const s = String(url || "");
+      const m = s.match(/^\{([A-Z][A-Z0-9]*)\}/);
+      if (!m) return [s];
+      const list = (manifest && manifest.cdn && manifest.cdn[m[1]]) || [""];
+      const i = Math.min(mirrorIndex, list.length - 1);
+      return list.slice(i).concat(list.slice(0, i)).map(function(b) {
+        return s.replace(/^\{[A-Z][A-Z0-9]*\}/, b);
+      });
+    }
+
+    function hostOf(url) {
+      try { return url.replace(/^https?:\/\//, "").split("/")[0]; } catch (e) { return "the mirror"; }
+    }
+
+    function engineName(html) {
+      if (/UnityLoader|createUnityInstance|UnityProgress/i.test(html)) return "Unity";
+      if (/ruffle/i.test(html)) return "Flash";
+      if (/godot|\.pck|engine\.js/i.test(html)) return "Godot";
+      if (/EmulatorJS|emulator/i.test(html)) return "emulator";
+      if (/eaglercraft/i.test(html)) return "Eaglercraft";
+      return "";
+    }
+
+    function withBase(html, abs) {
+      html = stripDeadScripts(html);
+      const dir = abs.slice(0, abs.lastIndexOf("/") + 1);
+      const inject = '<base href="' + dir + '">' + ASSET_SHIM + LOG_INJECT;
+      if (/<base\b[^>]*>/i.test(html)) html = html.replace(/<base\b[^>]*>/i, function() { return inject; });
+      else if (/<head[^>]*>/i.test(html)) html = html.replace(/<head([^>]*)>/i, function(m) { return m + inject; });
+      else html = inject + html;
+      return html;
+    }
+
+    function freshFrame() {
+      if (lastBlobUrl) { try { URL.revokeObjectURL(lastBlobUrl); } catch (e) {} lastBlobUrl = null; }
+      const old = document.getElementById("gameFrame");
+      const f = document.createElement("iframe");
+      f.id = "gameFrame";
+      f.title = "Game";
+      f.setAttribute("allow", "autoplay; fullscreen; gamepad; camera; microphone");
+      f.setAttribute("sandbox", "allow-same-origin allow-scripts allow-forms allow-modals allow-pointer-lock allow-orientation-lock allow-popups");
+      old.parentNode.replaceChild(f, old);
+      return f;
+    }
+
+    function writeInto(html, token) {
+      const f = freshFrame();
+      html = injectBrand(html);
+      const blob = new Blob([html], { type: "text/html" });
+      lastBlobUrl = URL.createObjectURL(blob);
+      f.addEventListener("load", function() {
+        try { f.contentWindow.postMessage({ __surdpanic: 1, key: localStorage.getItem("duplicity_panic_key") || null }, "*"); } catch (e) {}
+        setTimeout(function() { if (token === launchToken) setPlayerLoading(false); }, 400);
+      });
+      f.src = lastBlobUrl;
+    }
+
+    function prepScripts(html, base, token, done) {
+      const re = /<script\b[^>]*\bsrc="([^"]+)"[^>]*>/gi;
+      let m;
+      const srcs = [];
+      while ((m = re.exec(html))) {
+        const s = m[1];
+        if (/^(data:|blob:)/i.test(s)) continue;
+        if (/^https?:/i.test(s) && !/cdn\.jsdelivr\.net\/gh\/|raw\.githubusercontent\.com\//i.test(s)) continue;
+        if (srcs.indexOf(s) < 0) srcs.push(s);
+      }
+      if (!srcs.length) return done(html);
+      let pending = srcs.length;
+      let out = html;
+      const finish = function() { if (--pending === 0) done(out); };
+      srcs.forEach(function(s) {
+        let abs;
+        try { abs = new URL(s, base).href; } catch (e) { return finish(); }
+        fetch(abs + (abs.indexOf("?") < 0 ? "?t=" : "&t=") + Date.now(), { headers: { Range: "bytes=0-0" } })
+          .then(function(r) {
+            if (r.status === 206 || r.status === 200) return finish();
+            const raw = abs.replace("cdn.jsdelivr.net/gh/", "raw.githubusercontent.com/").replace("@", "/");
+            if (raw === abs) return finish();
+            if (token === launchToken) setPlayerLoading(true, "fetching " + s.split("/").pop());
+            return fetch(raw).then(function(rr) { return rr.ok ? rr.text() : Promise.reject(); })
+              .then(function(txt) {
+                const safe = txt.split("<\/script").join("<\\/script");
+                const esc = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                const rx = new RegExp('<script\\b[^>]*\\bsrc="' + esc + '"[^>]*>\\s*<\\/script>', "i");
+                if (rx.test(out)) out = out.replace(rx, function() { return "<script>" + safe + "</" + "script>"; });
+                finish();
+              });
+          })
+          .catch(finish);
+      });
+    }
+
+    function launchGame(game) {
+      const token = ++launchToken;
+      const overlay = document.getElementById("playerOverlay");
+      overlay.classList.add("open");
+      document.getElementById("playerTitle").textContent = game.title;
+      setPlayerLoading(true, "preparing");
+
+      const urls = candidates(game.src);
+      let i = 0;
+      (function attempt() {
+        if (token !== launchToken) return;
+        if (i >= urls.length) {
+          setPlayerLoading(true, "could not reach any mirror, try again later");
+          return;
+        }
+        const url = urls[i++];
+        setPlayerLoading(true, (i > 1 ? "retrying via " : "connecting to ") + hostOf(url));
+        fetch(url + (url.indexOf("?") < 0 ? "?t=" : "&t=") + Date.now())
+          .then(function(r) { return r.ok ? r.text() : Promise.reject(r.status); })
+          .then(function(html) {
+            if (/^\s*Couldn't find the requested file/i.test(html)) return Promise.reject("404-body");
+            if (token !== launchToken) return;
+            html = stripAdPayload(html);
+            if (html.indexOf("SURD_GAME") >= 0) {
+              const rtv = manifest && manifest.rt;
+              if (rtv) html = html.replace(/(surd-runtime@main\/)v[0-9a-f]+\//g, "$1v" + rtv + "/");
+              setPlayerLoading(true, "starting game");
+              writeInto(html, token);
+              return;
+            }
+            const eng = engineName(html);
+            setPlayerLoading(true, eng ? "starting " + eng + " game" : "starting game");
+            const base = url.slice(0, url.lastIndexOf("/") + 1);
+            prepScripts(withBase(html, url), base, token, function(finalHtml) {
+              if (token === launchToken) writeInto(finalHtml, token);
+            });
+          })
+          .catch(function() { attempt(); });
+      })();
+    }
+
+    function closePlayer() {
+      launchToken++;
+      freshFrame();
+      document.getElementById("playerOverlay").classList.remove("open");
+      setPlayerLoading(false);
+    }
+
+    // Game saves: runtime asks the portal to store progress in this browser.
+    function saveKey(game) { return "duplicity.save." + String(game || "").slice(0, 80); }
+    function handleSave(d, source) {
+      if (!d.game) return;
+      if (d.op === "load") {
+        let data = {};
+        try { data = JSON.parse(localStorage.getItem(saveKey(d.game)) || "{}") || {}; } catch (e) { data = {}; }
+        try { source.postMessage({ __surdsave: 1, op: "loaded", game: d.game, data: data }, "*"); } catch (e) {}
+        return;
+      }
+      if (d.op === "save") {
+        try {
+          const json = JSON.stringify(d.data || {});
+          if (json.length > 2 * 1024 * 1024) return;
+          localStorage.setItem(saveKey(d.game), json);
+        } catch (e) {}
+      }
+    }
+    window.addEventListener("message", function(e) {
+      const d = e && e.data;
+      if (!d || typeof d !== "object") return;
+      if (d.__surdsave) handleSave(d, e.source || window);
+      if (d.__surdpanic && !("key" in d)) {
+        const fr = document.getElementById("gameFrame");
+        if (fr && e.source === fr.contentWindow) location.replace(localStorage.getItem("duplicity_panic_url") || "https://classroom.google.com");
+      }
+    });
+
 
     document.getElementById("searchInput").addEventListener("input", renderGames);
     document.getElementById("collectionSelect").addEventListener("change", renderGames);
@@ -835,11 +1015,7 @@
     document.getElementById("settingsBtn").onclick = function() { openModal("settingsModal"); };
     document.getElementById("footerSettingsBtn").onclick = function() { openModal("settingsModal"); };
 
-    document.getElementById("backBtn").onclick = function() {
-      document.getElementById("playerOverlay").classList.remove("open");
-      document.getElementById("gameFrame").src = "about:blank";
-      setPlayerLoading(false);
-    };
+    document.getElementById("backBtn").onclick = closePlayer;
 
     document.getElementById("fullscreenBtn").onclick = function() {
       const frame = document.getElementById("gameFrame");
