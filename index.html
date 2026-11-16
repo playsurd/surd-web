@@ -389,6 +389,33 @@
       font-size: 0.85rem;
       color: var(--text-muted);
     }
+      /* ---------- PDF reader ---------- */
+    #pdfApp { position: fixed; inset: 0; z-index: 60; background: var(--bg-main); display: flex; flex-direction: column; }
+    #pdfApp.pdf-hide, .pdf-hide { display: none !important; }
+    .pdf-top { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-surface); border-bottom: 1px solid var(--cyan); flex-wrap: wrap; }
+    .pdf-title { flex: 1; min-width: 120px; color: var(--cyan); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pdf-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .pdf-tools input { width: 64px; text-align: center; }
+    .pdf-tools span { color: var(--text-muted); font-size: .9rem; }
+    #pdfLib { flex: 1; overflow-y: auto; padding: 18px 16px 40px; max-width: 1000px; width: 100%; margin: 0 auto; }
+    #pdfDrop { border: 2px dashed var(--cyan-dim); border-radius: var(--radius); padding: 28px 16px; text-align: center; color: var(--text-muted); background: var(--bg-surface); transition: border-color .15s, background .15s; }
+    #pdfDrop.over { border-color: var(--cyan); background: var(--bg-elevated); color: var(--text-main); }
+    #pdfDrop p { margin-bottom: 12px; }
+    #pdfMsg { min-height: 22px; margin: 10px 0; color: var(--text-muted); font-size: .9rem; }
+    #pdfList { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .pdf-card { display: flex; gap: 12px; background: var(--bg-surface); border: 1px solid var(--cyan-dim); border-radius: var(--radius); padding: 10px; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+    .pdf-card:hover { border-color: var(--cyan); box-shadow: 0 4px 16px var(--cyan-glow); }
+    .pdf-thumb { width: 64px; height: 88px; flex: none; border-radius: 4px; background: var(--bg-elevated) center/cover no-repeat; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: .7rem; }
+    .pdf-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+    .pdf-name { font-weight: 600; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+    .pdf-sub { color: var(--text-muted); font-size: .8rem; }
+    .pdf-bar { height: 5px; border-radius: 3px; background: var(--bg-elevated); overflow: hidden; }
+    .pdf-bar > i { display: block; height: 100%; background: var(--cyan); }
+    .pdf-del { align-self: flex-start; padding: 2px 8px; font-size: .8rem; }
+    #pdfScroll { flex: 1; overflow: auto; background: #0e1014; position: relative; }
+    #pdfPages { position: relative; padding: 12px 0 40px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .pdf-pg { background: #fff; box-shadow: 0 2px 14px rgba(0,0,0,.5); flex: none; overflow: hidden; }
+    .pdf-pg canvas { display: block; }
   </style>
 </head>
 <body>
@@ -402,6 +429,7 @@
       </select>
       <button id="randomBtn">Random Game</button>
       <button id="chatBtn">Chat</button>
+      <button id="pdfBtn">PDFs</button>
       <button id="infoBtn">Info</button>
       <button id="settingsBtn">Settings</button>
     </div>
@@ -429,6 +457,33 @@
       <button id="footerSettingsBtn">Settings</button>
     </div>
   </footer>
+
+  <div id="pdfApp" class="pdf-hide">
+    <div class="pdf-top">
+      <button id="pdfBack" class="pdf-hide">&larr; Library</button>
+      <div id="pdfTitle" class="pdf-title">PDF Library</div>
+      <div id="pdfTools" class="pdf-tools pdf-hide">
+        <button id="pdfPrev" title="Previous page">&lsaquo;</button>
+        <input type="number" id="pdfPageIn" min="1" value="1" />
+        <span id="pdfPageTot">/ 0</span>
+        <button id="pdfNext" title="Next page">&rsaquo;</button>
+        <button id="pdfZoomOut" title="Zoom out">&minus;</button>
+        <span id="pdfZoomLbl">100%</span>
+        <button id="pdfZoomIn" title="Zoom in">+</button>
+      </div>
+      <button id="pdfClose" title="Close">&#10005;</button>
+    </div>
+    <div id="pdfLib">
+      <div id="pdfDrop">
+        <p>Drag &amp; drop PDF files here, or pick them from your device.</p>
+        <button id="pdfPick">Add PDFs</button>
+        <input type="file" id="pdfFile" accept="application/pdf,.pdf" multiple class="pdf-hide" />
+      </div>
+      <div id="pdfMsg"></div>
+      <div id="pdfList"></div>
+    </div>
+    <div id="pdfScroll" class="pdf-hide"><div id="pdfPages"></div></div>
+  </div>
 
   <div class="modal-backdrop" id="infoModal">
     <div class="modal">
@@ -1120,6 +1175,300 @@
 
     loadManifest();
   </script>
+  <script>
+  // ---------- PDF reader: files and reading progress are stored in this browser (IndexedDB) ----------
+  (function() {
+    "use strict";
+    var g = function(i) { return document.getElementById(i); };
+    var PDFJS_BASE = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+    var db = null, pdfReady = null, lib = [];
+    var doc = null, meta = null, base = null, zoom = 1, scale = 1, pages = [], io = null, settle = false, saveT = null, msgT = null, opening = 0;
+
+    function idb() {
+      if (db) return Promise.resolve(db);
+      return new Promise(function(res, rej) {
+        var r;
+        try { r = indexedDB.open("duplicity-pdf", 1); } catch (e) { rej(e); return; }
+        r.onupgradeneeded = function() { var d = r.result; d.createObjectStore("meta", { keyPath: "id" }); d.createObjectStore("blobs", { keyPath: "id" }); };
+        r.onsuccess = function() { db = r.result; res(db); };
+        r.onerror = function() { rej(r.error); };
+      });
+    }
+    function tx(stores, mode, fn) {
+      return idb().then(function(d) {
+        return new Promise(function(res, rej) {
+          var t = d.transaction(stores, mode), out = fn(t);
+          t.oncomplete = function() { res(out && "result" in out ? out.result : undefined); };
+          t.onerror = t.onabort = function() { rej(t.error); };
+        });
+      });
+    }
+    function say(text, keep) {
+      var m = g("pdfMsg"); m.textContent = text || "";
+      clearTimeout(msgT);
+      if (text && !keep) msgT = setTimeout(function() { m.textContent = ""; }, 6000);
+    }
+    function loadPdfJs() {
+      if (pdfReady) return pdfReady;
+      pdfReady = new Promise(function(res, rej) {
+        var s = document.createElement("script");
+        s.src = PDFJS_BASE + "pdf.min.js";
+        s.onload = function() {
+          fetch(PDFJS_BASE + "pdf.worker.min.js").then(function(r) { return r.text(); }).then(function(t) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([t], { type: "text/javascript" }));
+            res(window.pdfjsLib);
+          }).catch(function() {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + "pdf.worker.min.js";
+            res(window.pdfjsLib);
+          });
+        };
+        s.onerror = function() { pdfReady = null; rej(new Error("Could not load the PDF engine. Check your connection and try again.")); };
+        document.head.appendChild(s);
+      });
+      return pdfReady;
+    }
+    function kill(d) { try { if (d.loadingTask && d.loadingTask.destroy) d.loadingTask.destroy(); else if (d.destroy) d.destroy(); } catch (e) {} }
+    function open(buf) {
+      var task = window.pdfjsLib.getDocument({ data: buf, isEvalSupported: false });
+      task.onPassword = function(update, reason) {
+        var p = window.prompt(reason === 2 ? "Wrong password. Try again:" : "This PDF is password protected. Enter the password:");
+        if (p === null) { task.destroy(); } else { update(p); }
+      };
+      return task.promise;
+    }
+
+    // ----- library -----
+    function ago(t) {
+      var s = Math.max(1, Math.floor((Date.now() - t) / 1000));
+      if (s < 3600) return Math.max(1, Math.floor(s / 60)) + " min ago";
+      if (s < 86400) return Math.floor(s / 3600) + " h ago";
+      return Math.floor(s / 86400) + " d ago";
+    }
+    function mb(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB"; }
+    function renderLib() {
+      var list = g("pdfList"); list.textContent = "";
+      lib.sort(function(a, b) { return b.updated - a.updated; });
+      if (!lib.length) { say("No PDFs yet. Add one above and it will be saved in this browser.", true); return; }
+      if (g("pdfMsg").textContent.indexOf("No PDFs yet") === 0) say("");
+      lib.forEach(function(m) {
+        var card = document.createElement("div"); card.className = "pdf-card";
+        var th = document.createElement("div"); th.className = "pdf-thumb";
+        if (m.thumb) th.style.backgroundImage = "url(" + m.thumb + ")"; else th.textContent = "PDF";
+        var info = document.createElement("div"); info.className = "pdf-info";
+        var nm = document.createElement("div"); nm.className = "pdf-name"; nm.textContent = m.name;
+        var sub = document.createElement("div"); sub.className = "pdf-sub";
+        sub.textContent = (m.pages ? "Page " + m.page + " of " + m.pages : "Not opened yet") + " · " + mb(m.size) + (m.pages ? " · read " + ago(m.updated) : "");
+        var bar = document.createElement("div"); bar.className = "pdf-bar";
+        var fill = document.createElement("i"); fill.style.width = (m.pages ? Math.min(100, Math.round(m.page / m.pages * 100)) : 0) + "%"; bar.appendChild(fill);
+        info.appendChild(nm); info.appendChild(sub); info.appendChild(bar);
+        var del = document.createElement("button"); del.className = "pdf-del"; del.textContent = "Delete"; del.title = "Delete this PDF";
+        del.onclick = function(e) { e.stopPropagation(); if (window.confirm("Delete \"" + m.name + "\" and its saved progress?")) removeDoc(m.id); };
+        card.appendChild(th); card.appendChild(info); card.appendChild(del);
+        card.onclick = function() { openDoc(m.id); };
+        list.appendChild(card);
+      });
+    }
+    function refreshLib() {
+      return tx("meta", "readonly", function(t) { return t.objectStore("meta").getAll(); }).then(function(r) { lib = r || []; renderLib(); })
+        .catch(function() { say("Saving is unavailable in this browser (private mode or storage blocked).", true); });
+    }
+    function removeDoc(id) {
+      tx(["meta", "blobs"], "readwrite", function(t) { t.objectStore("meta").delete(id); t.objectStore("blobs").delete(id); }).then(refreshLib);
+    }
+    function probe(id, file) {
+      // read page count and a small thumbnail of page 1
+      return loadPdfJs().then(function() { return file.arrayBuffer(); }).then(open).then(function(d) {
+        return d.getPage(1).then(function(p) {
+          var vp = p.getViewport({ scale: 1 }), sc = 130 / vp.width, v2 = p.getViewport({ scale: sc });
+          var cv = document.createElement("canvas"); cv.width = Math.floor(v2.width); cv.height = Math.floor(v2.height);
+          return p.render({ canvasContext: cv.getContext("2d"), canvas: cv, viewport: v2 }).promise.then(function() {
+            return { pages: d.numPages, thumb: cv.toDataURL("image/jpeg", 0.7) };
+          });
+        }).then(function(r) { kill(d); return r; }, function() { var n = d.numPages; kill(d); return { pages: n, thumb: "" }; });
+      }).then(function(r) {
+        return tx("meta", "readwrite", function(t) {
+          var s = t.objectStore("meta"), rq = s.get(id);
+          rq.onsuccess = function() { var m = rq.result; if (m) { m.pages = r.pages; m.thumb = r.thumb; s.put(m); } };
+        });
+      }).catch(function() { /* keep the file even if the preview fails */ });
+    }
+    function addOne(f) {
+      return f.slice(0, 5).text().then(function(h) {
+        if (h.indexOf("%PDF") !== 0) throw new Error("\"" + f.name + "\" isn't a valid PDF.");
+        var id = "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        var m = { id: id, name: f.name.replace(/\.pdf$/i, ""), size: f.size, added: Date.now(), updated: Date.now(), page: 1, pages: 0, zoom: 1, thumb: "" };
+        return tx(["meta", "blobs"], "readwrite", function(t) { t.objectStore("blobs").put({ id: id, blob: f }); t.objectStore("meta").put(m); })
+          .then(function() { return refreshLib(); }).then(function() { return probe(id, f); }).then(refreshLib);
+      }).catch(function(e) {
+        say(e && e.name === "QuotaExceededError" ? "Not enough browser storage left for \"" + f.name + "\"." : ((e && e.message) || "Could not add that file."), true);
+      });
+    }
+    function addFiles(list) {
+      var files = [].slice.call(list || []).filter(function(f) { return /\.pdf$/i.test(f.name) || f.type === "application/pdf"; });
+      if (!files.length) { say("Only PDF files can be added."); return; }
+      say("Saving " + files.length + (files.length > 1 ? " files" : " file") + "…", true);
+      files.reduce(function(p, f) { return p.then(function() { return addOne(f); }); }, Promise.resolve()).then(function() {
+        if (g("pdfMsg").textContent.indexOf("Saving") === 0) say("Saved. Your progress is remembered automatically.");
+        try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+      });
+    }
+
+    // ----- reader -----
+    function fitWidth() { return Math.max(200, Math.min(g("pdfScroll").clientWidth - 24, 1000)); }
+    function layout() {
+      if (io) io.disconnect();
+      var box = g("pdfPages"); box.textContent = ""; pages = [];
+      scale = fitWidth() * zoom / base.width;
+      var w = Math.floor(base.width * scale), h = Math.floor(base.height * scale);
+      for (var i = 1; i <= doc.numPages; i++) {
+        var el = document.createElement("div"); el.className = "pdf-pg"; el.style.width = w + "px"; el.style.height = h + "px"; el.dataset.n = i;
+        box.appendChild(el); pages.push({ el: el, state: 0, task: null });
+      }
+      io = new IntersectionObserver(function(es) {
+        es.forEach(function(e) { var n = +e.target.dataset.n; if (e.isIntersecting) renderPage(n); else releasePage(n); });
+      }, { root: g("pdfScroll"), rootMargin: "1500px 0px" });
+      pages.forEach(function(p) { io.observe(p.el); });
+      g("pdfZoomLbl").textContent = Math.round(zoom * 100) + "%";
+    }
+    function renderPage(n) {
+      var pg = pages[n - 1], mydoc = doc, myscale = scale;
+      if (!pg || pg.state) return;
+      pg.state = 1;
+      mydoc.getPage(n).then(function(p) {
+        if (mydoc !== doc || myscale !== scale || pg.state !== 1) return;
+        var vp = p.getViewport({ scale: scale }), dpr = Math.min(window.devicePixelRatio || 1, 2);
+        if (Math.abs(pg.el.clientWidth - vp.width) > 1 || Math.abs(pg.el.clientHeight - vp.height) > 1) { pg.el.style.width = Math.floor(vp.width) + "px"; pg.el.style.height = Math.floor(vp.height) + "px"; }
+        var cv = document.createElement("canvas");
+        cv.width = Math.floor(vp.width * dpr); cv.height = Math.floor(vp.height * dpr);
+        cv.style.width = Math.floor(vp.width) + "px"; cv.style.height = Math.floor(vp.height) + "px";
+        pg.task = p.render({ canvasContext: cv.getContext("2d"), canvas: cv, viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null });
+        return pg.task.promise.then(function() {
+          if (mydoc !== doc || pg.state !== 1) return;
+          pg.el.appendChild(cv); pg.state = 2; pg.task = null;
+          if (settle && meta && n === meta.page) goPage(meta.page);
+        });
+      }).catch(function() { if (pg.state === 1) pg.state = 0; });
+    }
+    function releasePage(n) {
+      var pg = pages[n - 1];
+      if (!pg || !pg.state) return;
+      try { if (pg.task) pg.task.cancel(); } catch (e) {}
+      pg.task = null; pg.el.textContent = ""; pg.state = 0;
+    }
+    function goPage(n) {
+      n = Math.max(1, Math.min(doc.numPages, n | 0));
+      g("pdfScroll").scrollTop = pages[n - 1].el.offsetTop - 8;
+    }
+    function currentPage() {
+      var sc = g("pdfScroll"), y = sc.scrollTop + sc.clientHeight * 0.25 + 8, lo = 0, hi = pages.length - 1;
+      while (lo < hi) { var mid = (lo + hi + 1) >> 1; if (pages[mid].el.offsetTop <= y) lo = mid; else hi = mid - 1; }
+      return lo + 1;
+    }
+    function save() {
+      if (!meta || !doc) return Promise.resolve();
+      var id = meta.id, page = meta.page, z = zoom, total = doc.numPages;
+      return tx("meta", "readwrite", function(t) {
+        var s = t.objectStore("meta"), rq = s.get(id);
+        rq.onsuccess = function() { var m = rq.result; if (!m) return; m.page = page; m.pages = total; m.zoom = z; m.updated = Date.now(); s.put(m); };
+      }).catch(function() {});
+    }
+    function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(save, 400); }
+    var ticking = false;
+    g("pdfScroll").addEventListener("scroll", function() {
+      if (ticking || !doc) return; ticking = true;
+      requestAnimationFrame(function() {
+        ticking = false; if (!doc || !pages.length) return;
+        var n = currentPage();
+        if (n !== meta.page) { meta.page = n; g("pdfPageIn").value = n; scheduleSave(); }
+      });
+    });
+    ["wheel", "touchstart", "pointerdown", "keydown"].forEach(function(ev) { g("pdfScroll").addEventListener(ev, function() { settle = false; }, { passive: true }); });
+
+    function showReader(on) {
+      g("pdfLib").classList.toggle("pdf-hide", on);
+      g("pdfScroll").classList.toggle("pdf-hide", !on);
+      g("pdfTools").classList.toggle("pdf-hide", !on);
+      g("pdfBack").classList.toggle("pdf-hide", !on);
+      if (!on) g("pdfTitle").textContent = "PDF Library";
+    }
+    function closeDoc() {
+      clearTimeout(saveT);
+      var p = save();
+      opening++;
+      if (io) io.disconnect();
+      pages.forEach(function(_, i) { releasePage(i + 1); });
+      pages = []; g("pdfPages").textContent = "";
+      var d = doc; doc = null; meta = null;
+      if (d) kill(d);
+      showReader(false);
+      return p.then(refreshLib);
+    }
+    function openDoc(id) {
+      var my = ++opening;
+      say("Opening…", true);
+      Promise.all([
+        loadPdfJs(),
+        tx("blobs", "readonly", function(t) { return t.objectStore("blobs").get(id); }),
+        tx("meta", "readonly", function(t) { return t.objectStore("meta").get(id); })
+      ]).then(function(r) {
+        if (!r[1] || !r[2]) throw new Error("That PDF is no longer saved.");
+        return r[1].blob.arrayBuffer().then(open).then(function(d) { return { d: d, m: r[2] }; });
+      }).then(function(r) {
+        if (my !== opening) { kill(r.d); return; }
+        doc = r.d; meta = r.m; zoom = meta.zoom || 1;
+        return doc.getPage(1).then(function(p) {
+          if (my !== opening) return;
+          base = p.getViewport({ scale: 1 });
+          say("");
+          showReader(true);
+          g("pdfTitle").textContent = meta.name;
+          g("pdfPageTot").textContent = "/ " + doc.numPages;
+          g("pdfPageIn").max = doc.numPages;
+          meta.page = Math.max(1, Math.min(doc.numPages, meta.page || 1));
+          g("pdfPageIn").value = meta.page;
+          layout(); settle = true;
+          goPage(meta.page);
+          save();
+        });
+      }).catch(function(e) {
+        if (my !== opening) return;
+        say((e && e.name === "PasswordException") ? "A password is needed to open that PDF." : ((e && e.message) || "Could not open that PDF."), true);
+      });
+    }
+    function setZoom(z) {
+      if (!doc) return;
+      z = Math.max(0.5, Math.min(3, Math.round(z * 100) / 100));
+      if (z === zoom) return;
+      var n = meta.page; zoom = z; layout(); goPage(n); scheduleSave();
+    }
+
+    // ----- wiring -----
+    g("pdfBtn").onclick = function() {
+      g("pdfApp").classList.remove("pdf-hide");
+      loadPdfJs().catch(function() {});
+      refreshLib();
+    };
+    g("pdfClose").onclick = function() { closeDoc().then(function() { g("pdfApp").classList.add("pdf-hide"); }); };
+    g("pdfBack").onclick = function() { closeDoc(); };
+    g("pdfPick").onclick = function() { g("pdfFile").click(); };
+    g("pdfFile").onchange = function() { addFiles(this.files); this.value = ""; };
+    g("pdfPrev").onclick = function() { if (doc) goPage(meta.page - 1); };
+    g("pdfNext").onclick = function() { if (doc) goPage(meta.page + 1); };
+    g("pdfPageIn").addEventListener("change", function() { if (doc) goPage(parseInt(this.value, 10) || 1); });
+    g("pdfZoomIn").onclick = function() { setZoom(zoom + 0.15); };
+    g("pdfZoomOut").onclick = function() { setZoom(zoom - 0.15); };
+    var drop = g("pdfApp");
+    ["dragenter", "dragover"].forEach(function(ev) { drop.addEventListener(ev, function(e) { e.preventDefault(); if (!g("pdfLib").classList.contains("pdf-hide")) g("pdfDrop").classList.add("over"); }); });
+    ["dragleave", "drop"].forEach(function(ev) { drop.addEventListener(ev, function(e) { e.preventDefault(); g("pdfDrop").classList.remove("over"); }); });
+    drop.addEventListener("drop", function(e) { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+    var rzT; window.addEventListener("resize", function() {
+      clearTimeout(rzT); rzT = setTimeout(function() { if (doc) { var n = meta.page; layout(); goPage(n); } }, 250);
+    });
+    document.addEventListener("visibilitychange", function() { if (document.hidden) save(); });
+    window.addEventListener("pagehide", function() { save(); });
+  })();
+  </script>
+
   <script type="module">
     // ---- Firebase web app config ----
     const FIREBASE_CONFIG = {
