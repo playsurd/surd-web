@@ -450,6 +450,21 @@
     #mpBar.mini { right: auto; border-radius: 0 12px 0 0; border-left: 0; padding: 6px 10px; }
     #mpBar.mini .mp-seek, #mpBar.mini #mpVol, #mpBar.mini #mpShuf, #mpBar.mini #mpRep, #mpBar.mini #mpNow { display: none; }
     @media (max-width: 640px) { #mpSide { width: 130px; } }
+      /* ---------- Virtual machine ---------- */
+    #vmApp { position: fixed; inset: 0; z-index: 64; background: var(--bg-main); display: flex; flex-direction: column; }
+    .vm-hide { display: none !important; }
+    #vmSetup { flex: 1; overflow-y: auto; padding: 18px 16px 40px; max-width: 760px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+    #vmDrop { border: 2px dashed var(--cyan-dim); border-radius: var(--radius); padding: 26px 16px; text-align: center; color: var(--text-muted); background: var(--bg-surface); }
+    #vmDrop.over { border-color: var(--cyan); background: var(--bg-elevated); color: var(--text-main); }
+    #vmDrop p { margin-bottom: 12px; }
+    .vm-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .vm-row input[type=text] { flex: 1; min-width: 200px; }
+    #vmMsg { min-height: 22px; color: var(--text-muted); font-size: .9rem; }
+    #vmRun { flex: 1; min-height: 0; display: flex; flex-direction: column; background: #000; }
+    #vmScreenWrap { flex: 1; min-height: 0; overflow: auto; display: flex; align-items: flex-start; justify-content: center; }
+    #vmScreen { color: #ddd; }
+    #vmScreen div { white-space: pre; font: 14px monospace; line-height: 14px; }
+    #vmScreen canvas { display: block; max-width: 100%; height: auto; image-rendering: pixelated; }
   </style>
 </head>
 <body>
@@ -465,6 +480,7 @@
       <button id="chatBtn">Chat</button>
       <button id="pdfBtn">PDFs</button>
       <button id="musicBtn">Music</button>
+      <button id="vmBtn">VM</button>
       <button id="infoBtn">Info</button>
       <button id="settingsBtn">Settings</button>
     </div>
@@ -553,6 +569,36 @@
     <button id="mpOpen" title="Open library">Library</button>
     <button id="mpCol" title="Shrink / expand">&#9662;</button>
     <button id="mpStop" title="Stop and hide">&#10005;</button>
+  </div>
+
+  <div id="vmApp" class="vm-hide">
+    <div class="pdf-top">
+      <div class="pdf-title" id="vmTitle">Virtual Machine</div>
+      <div class="pdf-tools vm-hide" id="vmTools">
+        <button id="vmPause">Pause</button>
+        <button id="vmReset">Restart</button>
+        <button id="vmCad" title="Send Ctrl+Alt+Del">Ctrl+Alt+Del</button>
+        <button id="vmMouse" title="Capture the mouse (Esc to release)">Capture mouse</button>
+        <button id="vmFull">Fullscreen</button>
+        <button id="vmStop">Power off</button>
+      </div>
+      <button id="vmClose" title="Close">&#10005;</button>
+    </div>
+    <div id="vmSetup">
+      <div id="vmDrop">
+        <p>Drag &amp; drop a disk image here (.iso, .img, .raw), or pick one from your device.</p>
+        <button id="vmPick">Choose image</button>
+        <input type="file" id="vmFile" accept=".iso,.img,.raw,.bin,.dsk,.flp" class="vm-hide" />
+      </div>
+      <div class="vm-row"><input type="text" id="vmUrl" placeholder="...or paste a direct link to an image file" /><button id="vmLoadUrl">Load link</button></div>
+      <div class="vm-row"><label for="vmMem">Memory</label>
+        <select id="vmMem"><option value="64">64 MB</option><option value="128" selected>128 MB</option><option value="256">256 MB</option><option value="512">512 MB</option></select></div>
+      <div id="vmMsg"></div>
+      <p style="color:var(--text-muted);font-size:.85rem;line-height:1.5">This runs a small PC in your browser tab, entirely offline. You supply the image (a Linux ISO, for example). Nothing is uploaded anywhere, and the virtual machine has no network access. Images are loaded fresh each time and aren't saved.</p>
+    </div>
+    <div id="vmRun" class="vm-hide">
+      <div id="vmScreenWrap"><div id="vmScreen"><div></div><canvas></canvas></div></div>
+    </div>
   </div>
 
   <div class="modal-backdrop" id="infoModal">
@@ -1834,6 +1880,91 @@
     ["dragleave", "drop"].forEach(function(ev) { drop.addEventListener(ev, function(e) { e.preventDefault(); g("mpDrop").classList.remove("over"); }); });
     drop.addEventListener("drop", function(e) { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
     updateBar();
+  })();
+  </script>
+
+  <script>
+  // ---------- Virtual machine (v86 x86 emulator, loaded from a CDN on first use) ----------
+  (function() {
+    "use strict";
+    var g = function(i) { return document.getElementById(i); };
+    var V86_BASE = "https://cdn.jsdelivr.net/npm/v86/";
+    var emu = null, ready = null, msgT = null, paused = false;
+    function say(t, keep) { var m = g("vmMsg"); m.textContent = t || ""; clearTimeout(msgT); if (t && !keep) msgT = setTimeout(function() { m.textContent = ""; }, 7000); }
+    function loadV86() {
+      if (ready) return ready;
+      ready = new Promise(function(res, rej) {
+        var s = document.createElement("script");
+        s.src = V86_BASE + "build/libv86.js";
+        s.onload = function() { var C = window.V86Starter || window.V86; C ? res(C) : rej(new Error("The emulator loaded but looked different than expected.")); };
+        s.onerror = function() { ready = null; rej(new Error("Could not load the emulator. Check your connection and try again.")); };
+        document.head.appendChild(s);
+      });
+      return ready;
+    }
+    function kind(name, size) {
+      if (/\.iso$/i.test(name)) return "cdrom";
+      if (size <= 2949120) return "fda";
+      return "hda";
+    }
+    function showRun(on) {
+      g("vmSetup").classList.toggle("vm-hide", on);
+      g("vmRun").classList.toggle("vm-hide", !on);
+      g("vmTools").classList.toggle("vm-hide", !on);
+      g("vmTitle").textContent = on ? "Virtual Machine — running" : "Virtual Machine";
+    }
+    function boot(src, name, size) {
+      say("Starting the emulator…", true);
+      loadV86().then(function(C) {
+        var mem = parseInt(g("vmMem").value, 10) * 1024 * 1024, k = kind(name, size || 0);
+        var opts = {
+          wasm_path: V86_BASE + "build/v86.wasm",
+          memory_size: mem, vga_memory_size: 8 * 1024 * 1024,
+          screen_container: g("vmScreen"),
+          bios: { url: V86_BASE + "bios/seabios.bin" },
+          vga_bios: { url: V86_BASE + "bios/vgabios.bin" },
+          autostart: true
+        };
+        opts[k] = src;
+        if (k === "hda") opts.boot_order = 0x132; // hard disk first
+        shutdown();
+        showRun(true); paused = false; g("vmPause").textContent = "Pause";
+        emu = new C(opts);
+        say("");
+      }).catch(function(e) { showRun(false); say((e && e.message) || "Could not start the virtual machine.", true); });
+    }
+    function shutdown() {
+      if (emu) { try { emu.destroy(); } catch (e) {} emu = null; }
+      var sc = g("vmScreen"); sc.innerHTML = "<div></div><canvas></canvas>";
+    }
+    function fromFile(f) {
+      if (!f) return;
+      var rd = new FileReader();
+      say("Reading " + f.name + "…", true);
+      rd.onload = function() { boot({ buffer: rd.result }, f.name, f.size); };
+      rd.onerror = function() { say("Could not read that file.", true); };
+      rd.readAsArrayBuffer(f);
+    }
+    g("vmBtn").onclick = function() { g("vmApp").classList.remove("vm-hide"); };
+    g("vmClose").onclick = function() { shutdown(); showRun(false); g("vmApp").classList.add("vm-hide"); };
+    g("vmPick").onclick = function() { g("vmFile").click(); };
+    g("vmFile").onchange = function() { fromFile(this.files[0]); this.value = ""; };
+    g("vmLoadUrl").onclick = function() {
+      var u = g("vmUrl").value.trim();
+      if (!/^https?:\/\//i.test(u)) { say("Paste a link that starts with https://", false); return; }
+      var name = u.split("?")[0].split("/").pop() || "image.img";
+      boot({ url: u }, name, 0);
+    };
+    g("vmPause").onclick = function() { if (!emu) return; if (paused) { emu.run(); paused = false; this.textContent = "Pause"; } else { emu.stop(); paused = true; this.textContent = "Resume"; } };
+    g("vmReset").onclick = function() { if (emu) emu.restart(); };
+    g("vmCad").onclick = function() { if (emu) emu.keyboard_send_scancodes([0x1D, 0x38, 0x53, 0x53 | 0x80, 0x38 | 0x80, 0x1D | 0x80]); };
+    g("vmMouse").onclick = function() { if (emu && emu.lock_mouse) emu.lock_mouse(); };
+    g("vmFull").onclick = function() { var el = g("vmRun"); if (el.requestFullscreen) el.requestFullscreen(); };
+    g("vmStop").onclick = function() { shutdown(); showRun(false); say("Powered off."); };
+    var drop = g("vmApp");
+    ["dragenter", "dragover"].forEach(function(ev) { drop.addEventListener(ev, function(e) { e.preventDefault(); g("vmDrop").classList.add("over"); }); });
+    ["dragleave", "drop"].forEach(function(ev) { drop.addEventListener(ev, function(e) { e.preventDefault(); g("vmDrop").classList.remove("over"); }); });
+    drop.addEventListener("drop", function(e) { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0] && !g("vmSetup").classList.contains("vm-hide")) fromFile(e.dataTransfer.files[0]); });
   })();
   </script>
 
