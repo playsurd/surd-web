@@ -1939,6 +1939,7 @@
     }
     function fromFile(f) {
       if (!f) return;
+      if (f.size > 900 * 1048576) { say("That image is " + (f.size / 1073741824).toFixed(1) + " GB. This emulator only runs small 32-bit systems (under about 900 MB), so big 64-bit distros like Linux Mint or Ubuntu won't work. Try a 32-bit image such as Tiny Core, SliTaz, Alpine x86 or KolibriOS.", true); return; }
       var rd = new FileReader();
       say("Reading " + f.name + "…", true);
       rd.onload = function() { boot({ buffer: rd.result }, f.name, f.size); };
