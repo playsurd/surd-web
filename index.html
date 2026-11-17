@@ -521,6 +521,7 @@
       <button id="pdfBtn">PDFs</button>
       <button id="musicBtn">Music</button>
       <button id="mgBtn">My Games</button>
+      <button id="studioBtn">Studio</button>
       <button id="infoBtn">Partners</button>
       <button id="settingsBtn">Settings</button>
     </div>
@@ -650,6 +651,8 @@
         <h3>Partner websites</h3>
         <p style="color:var(--text-muted);font-style:italic;line-height:1.5">These are my partner websites and are some great websites, they all are designed by talented people and I hope you check them out.</p>
         <div id="partnerList"></div>
+        <h3 style="margin-top:16px">Open-source tools</h3>
+        <p style="color:var(--text-muted);font-size:.85rem;line-height:1.5"><b style="color:var(--text-main)">Studio</b> is <a href="https://github.com/daijro/honeydew" target="_blank" rel="noopener noreferrer" style="color:var(--cyan)">Honeydew</a>, a free music studio by the Honeydew contributors, run unmodified (version 0.5.4) and licensed GPL-3.0-or-later. Source code: <a href="https://github.com/daijro/honeydew/tree/v0.5.4" target="_blank" rel="noopener noreferrer" style="color:var(--cyan)">github.com/daijro/honeydew</a>. Its license and third-party notices are in the <a href="https://github.com/adenrobinson57-pixel/duplicity-studio" target="_blank" rel="noopener noreferrer" style="color:var(--cyan)">duplicity-studio</a> repo. Its logo is a derivative of "Melon" by afitrose (free with attribution). Honeydew is not affiliated with Image-Line or FL Studio.</p>
       </div>
     </div>
   </div>
@@ -1104,8 +1107,8 @@
       const f = document.createElement("iframe");
       f.id = "gameFrame";
       f.title = "Game";
-      f.setAttribute("allow", "autoplay; fullscreen; gamepad; camera; microphone");
-      f.setAttribute("sandbox", "allow-same-origin allow-scripts allow-forms allow-modals allow-pointer-lock allow-orientation-lock allow-popups");
+      f.setAttribute("allow", "autoplay; fullscreen; gamepad; camera; microphone; midi");
+      f.setAttribute("sandbox", "allow-same-origin allow-scripts allow-forms allow-modals allow-pointer-lock allow-orientation-lock allow-popups allow-downloads");
       old.parentNode.replaceChild(f, old);
       return f;
     }
@@ -2977,6 +2980,21 @@
       }
       row.appendChild(lg); row.appendChild(body); box.appendChild(row);
     });
+  })();
+  </script>
+  <script>
+  // ---------- Studio (Honeydew, hosted in its own repo) ----------
+  (function() {
+    var STUDIO_URL = "https://adenrobinson57-pixel.github.io/duplicity-studio/";
+    document.getElementById("studioBtn").onclick = function() {
+      var token = ++launchToken;
+      document.getElementById("playerOverlay").classList.add("open");
+      document.getElementById("playerTitle").textContent = "Studio (Honeydew)";
+      setPlayerLoading(true, "loading the studio (first time can take a bit)");
+      var f = freshFrame();
+      f.addEventListener("load", function() { setTimeout(function() { if (token === launchToken) setPlayerLoading(false); }, 1500); });
+      f.src = STUDIO_URL;
+    };
   })();
   </script>
 </body>
