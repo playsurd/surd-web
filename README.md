@@ -1,13 +1,25 @@
-this is a game and code website based off of surd, all credit for that relativly larrge portion of what this is goes to the people at ["https://github.com/playsurd/surd-web"] (I hope that's correct link format but IDC if it not I ain't fixing it) if you have questions use the link above, I am just doing this to better understand how this shit works and maybe make a better version of it or something idk, curently it is mostly a copy but i plan to make it quite a lot more, i am using it as a base, i have altered it and changed a lot of things mostly i am using there software model but ill be changing massive portions of it
+# Duplicity
 
-below is the update log
+Duplicity is a gaming and coding platform inspired by [Surd](https://github.com/playsurd/surd-web). I would like to extend my thanks to the original developers, as this project utilizes a bit of their code as a foundational base. My goal with this project is to create a robust and fun gaming platform for me and my fellow students, with the intention of significantly expanding and customizing the platform over time.
 
-update, 11/14/2026
-added chat feature updated a bunch of loading stuff redid some stuff and clarified branding swapped over from a bunch of old hosting to hosting by me updated chat stuff added moderator permissions and admin permissions
+## Update Log
 
-update, 11/15/2026
-added like 350 new games, game images are tbd finished crossing over from private repos to my repos
+**November 14, 2026**
+- Implemented a new chat feature.
+- Optimized loading processes and refined platform branding.
+- Migrated to personal hosting.
+- Introduced moderator and administrator permission levels.
 
-update, 11/16/2026
-EXTENSIVE chat reworks and added roles for managment added suport for music and pdfs integrated redid the logo and added a virtual machine IT WILL LAGG ITS FINE use TINY linuix distros 32 bit 
+**November 15, 2026**
+- Added over 350 new games (game thumbnails currently in progress).
+- Completed migration from private repositories to this public repository.
 
+**November 16, 2026**
+- Conducted extensive chat reworks and added management roles.
+- Added support for music and PDF files.
+- Redesigned the project logo.
+- Integrated a virtual machine emulator (Note: Performance may vary; recommended for use with lightweight 32-bit Linux distributions).
+
+**November 16, 2026**
+- Implemented various GUI and chat enhancements.
+- Added an option for users to export their personal data.
