@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#16181d" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&display=swap" rel="stylesheet" />
   <title>Duplicity</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2048%2048%22%3E%3Crect%20width=%2248%22%20height=%2248%22%20rx=%2210%22%20fill=%22%2310131a%22/%3E%3Cg%20transform=%22translate%285%205%29%20scale%28.8%29%22%3E%3Cpath%20d=%22M8%2044C3%2038%203%2028%209%2023C8%2028%2011%2030%2013%2027C11%2020%2014%2014%2015%209C18%2013%2020%2015%2021%2019C20%2012%2021%206%2025%202C26%209%2030%2012%2031%2018C33%2014%2033%2011%2034%206C38%2011%2041%2016%2040%2024C44%2028%2044%2038%2039%2044C34%2047%2014%2047%208%2044Z%22%20fill=%22%231346d8%22/%3E%3Cpath%20d=%22M12%2043C8%2037%209%2030%2013%2027C13%2030%2015%2031%2016%2029C15%2024%2017%2020%2018%2017C20%2020%2021%2022%2022%2025C22%2019%2023%2013%2025%209C26%2015%2029%2018%2029%2023C31%2020%2031%2018%2032%2015C35%2019%2037%2023%2036%2029C39%2033%2039%2039%2035%2043C30%2045%2017%2045%2012%2043Z%22%20fill=%22%231f86ff%22/%3E%3Cpath%20d=%22M17%2043C14%2038%2016%2033%2019%2031C19%2033%2021%2034%2022%2033C21%2029%2023%2026%2024%2023C25%2027%2027%2029%2027%2032C29%2031%2029%2029%2030%2027C33%2031%2034%2038%2031%2043C28%2044.5%2020%2044.5%2017%2043Z%22%20fill=%22%236fd8ff%22/%3E%3Cpath%20d=%22M24%2032C25.5%2035%2028%2036.5%2027%2040C26.5%2042%2025%2043%2024%2043C23%2043%2021.5%2042%2021%2040C20.5%2037%2023%2035.5%2024%2032Z%22%20fill=%22%23e6fcff%22/%3E%3Cg%20fill=%22%230b1020%22%20stroke=%22%23d6f6ff%22%20stroke-width=%22.7%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M24%204.6L26.1%206.8L24%209L21.9%206.8Z%22/%3E%3Cpath%20d=%22M22.7%209H25.3V15.8H22.7Z%22/%3E%3Cpath%20d=%22M12.6%2015.6C12.6%2014.5%2014.2%2014.3%2015.8%2015.2L21.3%2015.8H26.7L32.2%2015.2C33.8%2014.3%2035.4%2014.5%2035.4%2015.6C35.4%2017.4%2033.2%2018.3%2031.5%2018.1L26.6%2019H21.4L16.5%2018.1C14.8%2018.3%2012.6%2017.4%2012.6%2015.6Z%22/%3E%3Cpath%20d=%22M21.4%2019H26.6V32.4L25.3%2031.4L25.6%2035.4L24.2%2033.4L23.2%2038L22.3%2034.4L21.4%2036Z%22/%3E%3C/g%3E%3Cpath%20d=%22M22.9%2011.3H25.1M22.9%2013.1H25.1M24%2020.5V31%22%20stroke=%22%236fd3ff%22%20stroke-width=%22.6%22%20fill=%22none%22/%3E%3C/g%3E%3C/svg%3E" />
   <style>
@@ -377,6 +379,19 @@
     .badge.creator.ghost { opacity: 0.45; }
     .chat-ok { color: #7bffb0; font-size: 0.85rem; min-height: 1.1em; }
     .chat-system { color: var(--text-muted); font-style: italic; }
+    .partner { --p-bg: #07040f; --p-accent: #19e6ff; --p-accent2: #ff2fa0; display: flex; gap: 16px; align-items: center; margin-top: 12px; padding: 16px; border-radius: 14px; border: 1px solid var(--p-accent); box-shadow: 0 0 18px color-mix(in srgb, var(--p-accent) 30%, transparent), inset 0 0 30px color-mix(in srgb, var(--p-accent) 8%, transparent); background-color: var(--p-bg); background-image: linear-gradient(color-mix(in srgb, var(--p-accent) 7%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--p-accent) 7%, transparent) 1px, transparent 1px); background-size: 26px 26px; }
+    .partner-logo { flex: none; width: 110px; height: 110px; border-radius: 14px; overflow: hidden; background: #02060f; border: 1px solid var(--p-accent); box-shadow: 0 0 14px color-mix(in srgb, var(--p-accent) 45%, transparent); display: block; transition: box-shadow .15s, transform .12s; }
+    .partner-logo:hover { box-shadow: 0 0 26px var(--p-accent); transform: scale(1.04); }
+    .partner-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .partner-body { flex: 1; min-width: 0; }
+    .partner-body h4 { font-family: "Orbitron", "Segoe UI", sans-serif; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #eafcff; font-size: 1.05rem; text-shadow: 0 0 10px var(--p-accent), 0 0 22px color-mix(in srgb, var(--p-accent) 55%, transparent); margin-bottom: 6px; }
+    .partner-body p { color: #c9d6e6; line-height: 1.5; font-size: .88rem; }
+    .partner-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .partner-links a { font-family: "Orbitron", "Segoe UI", sans-serif; font-size: .7rem; letter-spacing: 1px; text-transform: uppercase; padding: 6px 13px; border: 1px solid var(--lc, var(--p-accent)); border-radius: 999px; color: #eafcff; text-decoration: none; background: rgba(0,0,0,.45); transition: box-shadow .15s, background .15s; }
+    .partner-links a:hover { box-shadow: 0 0 14px var(--lc, var(--p-accent)); background: color-mix(in srgb, var(--lc, var(--p-accent)) 22%, #000); }
+    .partner-shots { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; }
+    .partner-shots img { height: 64px; border-radius: 6px; border: 1px solid var(--p-accent); display: block; }
+    @media (max-width: 520px) { .partner { flex-direction: column; align-items: flex-start; } .partner-logo { width: 90px; height: 90px; } }
     .hidden { display: none !important; }
     #mgDrop { border: 2px dashed var(--cyan-dim); border-radius: var(--radius); padding: 22px 14px; text-align: center; color: var(--text-muted); background: var(--bg-surface); transition: border-color .15s, background .15s; }
     #mgDrop.over { border-color: var(--cyan); background: var(--bg-elevated); }
@@ -634,7 +649,7 @@
       <div class="setting-group">
         <h3>Partner websites</h3>
         <p style="color:var(--text-muted);font-style:italic;line-height:1.5">These are my partner websites and are some great websites, they all are designed by talented people and I hope you check them out.</p>
-        <div class="encoded-box">🌐 Dominum Network 🌐 They are my first partner website and have a TON of games some WIP proxys and most importantly they have something I dont, movies shows and anime, their discord is https://discord.gg/adeCpCBcwN and their site links are https://sites.google.com/view/dominumnetworkv2 and https://dominum.global.ssl.fastly.net/, ima make this partner thing look better but it exists and thats what matters.   -a_312</div>
+        <div id="partnerList"></div>
       </div>
     </div>
   </div>
@@ -2914,6 +2929,55 @@
   refresh();
 })();
 
+  </script>
+  <script>
+  // ---------- partners ----------
+  // To add a partner: copy one block, put the logo in the repo's "partners" folder, and fill in the lines.
+  (function() {
+    var PARTNERS = [
+      {
+        name: "Dominum Network",
+        logo: "partners/dominum.png",
+        theme: { bg: "#07040f", accent: "#19e6ff", accent2: "#ff2fa0" },   // matches their site: near-black, cyan glow
+        url: "https://sites.google.com/view/dominumnetworkv2",
+        desc: "My first partner website. They have a TON of games, some WIP proxies, and most importantly something I don't: movies, shows and anime.",
+        links: [
+          { label: "Website", url: "https://sites.google.com/view/dominumnetworkv2" },
+          { label: "Mirror", url: "https://dominum.global.ssl.fastly.net/" },
+          { label: "Discord", url: "https://discord.gg/adeCpCBcwN", color: "#5865f2" }
+        ],
+        shots: []
+      }
+    ];
+    var box = document.getElementById("partnerList");
+    function a(href, cls) { var e = document.createElement("a"); e.href = href; e.target = "_blank"; e.rel = "noopener noreferrer"; if (cls) e.className = cls; return e; }
+    PARTNERS.forEach(function(pt) {
+      var row = document.createElement("div"); row.className = "partner";
+      if (pt.theme) { row.style.setProperty("--p-bg", pt.theme.bg); row.style.setProperty("--p-accent", pt.theme.accent); if (pt.theme.accent2) row.style.setProperty("--p-accent2", pt.theme.accent2); }
+      var lg = a(pt.url, "partner-logo"); lg.title = "Open " + pt.name;
+      var im = document.createElement("img"); im.alt = pt.name; im.src = pt.logo;
+      im.onerror = function() { im.onerror = null; im.src = placeholderCover(pt.name); };
+      lg.appendChild(im);
+      var body = document.createElement("div"); body.className = "partner-body";
+      var h = document.createElement("h4"); h.textContent = pt.name;
+      var d = document.createElement("p"); d.textContent = pt.desc;
+      body.appendChild(h); body.appendChild(d);
+      if (pt.links && pt.links.length) {
+        var ls = document.createElement("div"); ls.className = "partner-links";
+        pt.links.forEach(function(l) { var x = a(l.url); x.textContent = l.label; if (l.color) x.style.setProperty("--lc", l.color); ls.appendChild(x); });
+        body.appendChild(ls);
+      }
+      if (pt.shots && pt.shots.length) {
+        var sh = document.createElement("div"); sh.className = "partner-shots";
+        pt.shots.forEach(function(u) {
+          var x = a(u); var t = document.createElement("img"); t.src = u; t.alt = pt.name + " screenshot"; t.loading = "lazy";
+          t.onerror = function() { x.remove(); }; x.appendChild(t); sh.appendChild(x);
+        });
+        body.appendChild(sh);
+      }
+      row.appendChild(lg); row.appendChild(body); box.appendChild(row);
+    });
+  })();
   </script>
 </body>
 </html>
