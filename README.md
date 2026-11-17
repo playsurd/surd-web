@@ -23,3 +23,8 @@ Duplicity is a gaming and coding platform inspired by [Surd](https://github.com/
 **November 16, 2026**
 - Implemented various GUI and chat enhancements.
 - Added an option for users to export their personal data.
+
+**November 17, 2026**
+- Added partnership with dominum network
+- Added music creation software
+- Various quality of life updates
