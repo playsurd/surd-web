@@ -378,6 +378,20 @@
     .chat-ok { color: #7bffb0; font-size: 0.85rem; min-height: 1.1em; }
     .chat-system { color: var(--text-muted); font-style: italic; }
     .hidden { display: none !important; }
+    .chat-msg.mention-me { background: rgba(0,229,255,.12); border-left: 3px solid var(--cyan); padding: 2px 6px; border-radius: 4px; }
+    .chat-msg .mention { color: var(--cyan); font-weight: 700; }
+    .chat-msg .mention.me { background: rgba(0,229,255,.25); border-radius: 3px; padding: 0 3px; }
+    .chat-msg b.nm { cursor: pointer; }
+    .chat-react { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; align-items: center; }
+    .chat-react button { font-size: .75rem; padding: 1px 7px; border-radius: 10px; line-height: 1.5; min-height: 0; }
+    .chat-react button.mine { border-color: var(--cyan); background: rgba(0,229,255,.18); }
+    .chat-react .pick button { font-size: .95rem; }
+    .chat-react .rp { opacity: .6; }
+    .chat-react .rp:hover { opacity: 1; }
+    #chatReports { border: 1px solid #ff7b7b; border-radius: var(--radius); padding: 8px 10px; }
+    #chatReports h3 { color: #ff7b7b; font-size: .95rem; margin-bottom: 6px; }
+    .rep-item { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; padding: 5px 0; border-top: 1px solid var(--bg-elevated); font-size: .85rem; word-break: break-word; }
+    .rep-item small { color: var(--text-muted); display: block; }
 
     footer {
       background-color: var(--bg-surface);
@@ -603,6 +617,7 @@
 
       <div id="chatOn" class="hidden" style="display:flex;flex-direction:column;gap:16px">
         <div class="chat-list" id="chatList"></div>
+        <div id="chatReports" class="hidden"><h3>Reported messages <span id="repCount"></span></h3><div id="repList"></div></div>
 
         <div class="setting-group" id="chatAuth">
           <h3>Sign in to chat</h3>
@@ -2070,6 +2085,12 @@
       let disguised = false;
       let unsubs = [];
       let muteTimer = null;
+      let reactDocs = {};
+      let reactMine = {};
+      let pickerFor = null;
+      const reportedLocal = {};
+      let repUnsub = null;
+      const EMOJIS = ["\uD83D\uDC4D", "\uD83D\uDC99", "\uD83D\uDE02", "\uD83D\uDD25", "\uD83D\uDE2E"];
 
       $("chatOff").classList.add("hidden");
       $("chatOn").classList.remove("hidden");
@@ -2161,10 +2182,87 @@
             updateStatus();
           }, function() {}));
         }
+        if (repUnsub) { try { repUnsub(); } catch (e) {} repUnsub = null; }
         updateStatus();
+        syncReports();
         renderMessages();
         if (user && me === CREATOR) sweepExpired();
       });
+
+      // ---- Reports (staff only) ----
+      function isStaffName(n) { const r = roleOfName(n); return r === "creator" || r === "admin" || r === "moderator"; }
+      function syncReports() {
+        const me = myName();
+        const staff = !!me && isStaffName(me);
+        $("chatReports").classList.toggle("hidden", !staff);
+        if (!staff) { if (repUnsub) { try { repUnsub(); } catch (e) {} repUnsub = null; } return; }
+        if (repUnsub) return;
+        repUnsub = F.onSnapshot(F.query(F.collection(db, "reports"), F.orderBy("at", "desc"), F.limit(30)), function(snap) {
+          const box = $("repList");
+          box.innerHTML = "";
+          $("repCount").textContent = snap.size ? "(" + snap.size + ")" : "";
+          if (snap.empty) { const n = document.createElement("div"); n.className = "chat-note"; n.textContent = "No reports."; box.appendChild(n); return; }
+          snap.forEach(function(d) {
+            const r = d.data();
+            const it = document.createElement("div");
+            it.className = "rep-item";
+            const left = document.createElement("div");
+            const t = document.createElement("div");
+            t.textContent = r.target + ": " + r.text;
+            const sm = document.createElement("small");
+            sm.textContent = "reported by " + r.by + (r.at && r.at.toDate ? " at " + fmtWhen(r.at.toDate()) : "") + "  (use /mute " + r.target + " 10)";
+            left.appendChild(t); left.appendChild(sm);
+            const b = document.createElement("button");
+            b.textContent = "Dismiss";
+            b.onclick = function() { F.deleteDoc(d.ref).catch(function() { notice("Couldn't dismiss that.", false); }); };
+            it.appendChild(left); it.appendChild(b);
+            box.appendChild(it);
+          });
+        }, function() { repUnsub = null; });
+      }
+
+      // ---- Reactions ----
+      F.onSnapshot(F.query(F.collection(db, "reactions"), F.orderBy("at", "desc"), F.limit(400)), function(snap) {
+        const docs = {};
+        snap.forEach(function(d) {
+          const r = d.data();
+          if (!r.mid || !r.emoji) return;
+          (docs[r.mid] = docs[r.mid] || []).push({ id: d.id, emoji: r.emoji });
+        });
+        reactDocs = docs;
+        renderMessages();
+      }, function() {});
+      let lastReact = 0;
+      async function toggleReact(mid, emoji) {
+        const u = auth.currentUser;
+        if (!u) return;
+        if (Date.now() - lastReact < 500) return;
+        lastReact = Date.now();
+        const rid = mid + "_" + u.uid;
+        try {
+          if (reactMine[mid] === emoji) await F.deleteDoc(F.doc(db, "reactions", rid));
+          else await F.setDoc(F.doc(db, "reactions", rid), {
+            mid: mid, emoji: emoji, at: F.serverTimestamp(),
+            expireAt: F.Timestamp.fromMillis(Date.now() + KEEP_DAYS * 86400000)
+          });
+        } catch (e) { notice("Couldn't react (are you muted or banned?).", false); }
+        pickerFor = null;
+      }
+      async function reportMsg(m) {
+        const u = auth.currentUser;
+        if (!u || !m.id) return;
+        reportedLocal[m.id] = true;
+        renderMessages();
+        try {
+          await F.setDoc(F.doc(db, "reports", m.id + "_" + u.uid), {
+            mid: m.id, target: m.name, by: myName(), text: String(m.text).slice(0, 300), at: F.serverTimestamp()
+          });
+          notice("Reported. A moderator will look at it.", true);
+        } catch (e) {
+          if (!(e && e.code === "permission-denied")) { reportedLocal[m.id] = false; renderMessages(); }
+          notice(e && e.code === "permission-denied" ? "You've already reported that message." : "Couldn't send the report.", false);
+        }
+      }
 
       // Creator-only cleanup of expired messages (replaces a TTL policy)
       async function sweepExpired() {
@@ -2178,6 +2276,15 @@
             await batch.commit();
             if (snap.size < 100) break;
           }
+          for (let i = 0; i < 5; i++) {
+            const rs = await F.getDocs(F.query(F.collection(db, "reactions"),
+              F.where("expireAt", "<=", F.Timestamp.now()), F.limit(100)));
+            if (rs.empty) break;
+            const b2 = F.writeBatch(db);
+            rs.forEach(function(d) { b2.delete(d.ref); });
+            await b2.commit();
+            if (rs.size < 100) break;
+          }
         } catch (e) { console.warn("sweep failed", e); }
       }
 
@@ -2187,6 +2294,7 @@
         snap.forEach(function(d) { const r = d.data().role; if (r) rolesMap[d.id] = r; });
         const me = myName();
         if (me) $("chatMe").textContent = me + (roleOfName(me) ? " (" + roleOfName(me) + ")" : "");
+        syncReports();
         renderMessages();
       }, function() {});
 
@@ -2333,21 +2441,88 @@
         const list = $("chatList");
         const stick = list.scrollTop + list.clientHeight >= list.scrollHeight - 30;
         list.innerHTML = "";
+        const uidNow = auth.currentUser ? auth.currentUser.uid : "";
+        const meN2 = myName();
         lastDocs.forEach(function(m) {
+          let mineHere = null;
           const row = document.createElement("div");
           row.className = "chat-msg";
           const bd = badgeFor(m.name);
           if (bd) row.appendChild(bd);
           const who = document.createElement("b");
           who.textContent = m.name;
+          who.className = "nm";
+          who.title = "Mention " + m.name;
+          who.onclick = function() {
+            if (!auth.currentUser || $("chatText").disabled) return;
+            const t = $("chatText");
+            t.value = (t.value + (t.value && !/\s$/.test(t.value) ? " " : "") + "@" + m.name + " ").slice(0, 300);
+            t.focus();
+          };
           const body = document.createElement("span");
-          body.textContent = m.text;
+          const meN = myName();
+          String(m.text).split(/(@[a-zA-Z0-9_]{3,20})/).forEach(function(part, i) {
+            if (i % 2 === 1) {
+              const sp = document.createElement("span");
+              const isMe = !!meN && part.slice(1).toLowerCase() === meN;
+              sp.className = "mention" + (isMe ? " me" : "");
+              sp.textContent = part;
+              body.appendChild(sp);
+              if (isMe && m.name !== meN) row.classList.add("mention-me");
+            } else if (part) body.appendChild(document.createTextNode(part));
+          });
           row.appendChild(who);
           row.appendChild(body);
           if (m.createdAt && m.createdAt.toDate) {
             const t = document.createElement("time");
             t.textContent = m.createdAt.toDate().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
             row.appendChild(t);
+          }
+          if (m.id) {
+            const bar = document.createElement("div");
+            bar.className = "chat-react";
+            const counts = {};
+            (reactDocs[m.id] || []).forEach(function(r) {
+              counts[r.emoji] = (counts[r.emoji] || 0) + 1;
+              if (uidNow && r.id === m.id + "_" + uidNow) mineHere = r.emoji;
+            });
+            Object.keys(counts).forEach(function(em) {
+              const b = document.createElement("button");
+              b.textContent = em + " " + counts[em];
+              if (mineHere === em) b.className = "mine";
+              b.onclick = function() { reactMine[m.id] = mineHere; toggleReact(m.id, em); };
+              b.disabled = !uidNow;
+              bar.appendChild(b);
+            });
+            if (uidNow) {
+              if (pickerFor === m.id) {
+                const pk = document.createElement("span");
+                pk.className = "pick";
+                EMOJIS.forEach(function(em) {
+                  const b = document.createElement("button");
+                  b.textContent = em;
+                  b.onclick = function() { reactMine[m.id] = mineHere; toggleReact(m.id, em); };
+                  pk.appendChild(b);
+                });
+                bar.appendChild(pk);
+              } else {
+                const add = document.createElement("button");
+                add.className = "rp";
+                add.textContent = "+";
+                add.title = "React";
+                add.onclick = function() { pickerFor = m.id; renderMessages(); };
+                bar.appendChild(add);
+              }
+              if (m.name !== meN2 && m.name !== CREATOR) {
+                const rp = document.createElement("button");
+                rp.className = "rp";
+                rp.title = "Report to moderators";
+                if (reportedLocal[m.id]) { rp.textContent = "Reported"; rp.disabled = true; }
+                else { rp.textContent = "Report"; rp.onclick = function() { if (confirm("Report this message to the moderators?")) reportMsg(m); }; }
+                bar.appendChild(rp);
+              }
+            }
+            if (bar.childNodes.length) row.appendChild(bar);
           }
           list.appendChild(row);
         });
@@ -2357,7 +2532,7 @@
       const q = F.query(F.collection(db, "messages"), F.orderBy("createdAt", "desc"), F.limit(50));
       F.onSnapshot(q, function(snap) {
         const docs = [];
-        snap.forEach(function(d) { docs.push(d.data()); });
+        snap.forEach(function(d) { const x = d.data(); x.id = d.id; docs.push(x); });
         docs.reverse();
         lastDocs = docs;
         renderMessages();
