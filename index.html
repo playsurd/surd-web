@@ -378,6 +378,16 @@
     .chat-ok { color: #7bffb0; font-size: 0.85rem; min-height: 1.1em; }
     .chat-system { color: var(--text-muted); font-style: italic; }
     .hidden { display: none !important; }
+    #mgDrop { border: 2px dashed var(--cyan-dim); border-radius: var(--radius); padding: 22px 14px; text-align: center; color: var(--text-muted); background: var(--bg-surface); transition: border-color .15s, background .15s; }
+    #mgDrop.over { border-color: var(--cyan); background: var(--bg-elevated); }
+    #mgMsg { min-height: 20px; font-size: .9rem; color: var(--text-muted); }
+    .mg-item { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--bg-elevated); flex-wrap: wrap; }
+    .mg-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; background: var(--bg-elevated); flex: none; }
+    .mg-mid { flex: 1 1 160px; min-width: 0; }
+    .mg-name { font-weight: 700; word-break: break-word; }
+    .mg-sub { color: var(--text-muted); font-size: .78rem; word-break: break-all; }
+    .mg-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+    .mg-acts button { font-size: .8rem; padding: 4px 10px; min-height: 0; }
     /* chat docked over a running game */
     #chatModal.dock { z-index: 120; background: transparent; pointer-events: none; align-items: flex-start; justify-content: flex-end; padding: 52px 10px 0; }
     #chatModal.dock .modal { pointer-events: auto; max-width: 340px; max-height: 72vh; padding: 10px; gap: 8px; opacity: .97; }
@@ -495,6 +505,7 @@
       <button id="chatBtn">Chat</button>
       <button id="pdfBtn">PDFs</button>
       <button id="musicBtn">Music</button>
+      <button id="mgBtn">My Games</button>
       <button id="infoBtn">Partners</button>
       <button id="settingsBtn">Settings</button>
     </div>
@@ -518,6 +529,7 @@
   </div>
 
   <section id="homeRows" class="home-rows">
+    <div class="home-row" id="rowMine" hidden><h3>My Games</h3><div class="row-cards"></div></div>
     <div class="home-row" id="rowPopular" hidden><h3 id="popTitle">Popular this week</h3><div class="row-cards"></div></div>
     <div class="home-row" id="rowRecent" hidden><h3>Continue playing</h3><div class="row-cards"></div></div>
   </section>
@@ -594,6 +606,23 @@
     <button id="mpOpen" title="Open library">Library</button>
     <button id="mpCol" title="Shrink / expand">&#9662;</button>
     <button id="mpStop" title="Stop and hide">&#10005;</button>
+  </div>
+
+  <div class="modal-backdrop" id="mgModal">
+    <div class="modal" style="max-width:720px">
+      <div class="modal-header"><h2>My Games</h2><button id="mgClose">Close</button></div>
+      <div id="mgDrop">
+        <div style="font-weight:700;color:var(--text)">Drop a game folder or .zip here</div>
+        <div style="margin:6px 0 12px;font-size:.85rem">Name the folder what you want the game called (use underscores for spaces, like My_Cool_Game). Put the game's files in it, with its images and other files in subfolders as usual. It needs an index.html or another .html page to start from.</div>
+        <div class="row" style="justify-content:center"><button id="mgPickFolder">Choose folder</button><button id="mgPickFiles">Choose files / .zip</button></div>
+        <input type="file" id="mgFolder" webkitdirectory multiple hidden />
+        <input type="file" id="mgFiles" multiple hidden />
+      </div>
+      <div id="mgMsg"></div>
+      <div id="mgList"></div>
+      <div id="mgUsage" class="chat-note"></div>
+      <p class="chat-note">Games are saved in this browser only, and they run inside Duplicity. Only add games you trust, since a game can read the rest of this site's data in your browser (including your chat login). Games that load files with paths starting at "/" won't find them, and a few that need special browser headers (some multi-threaded builds) may not run.</p>
+    </div>
   </div>
 
   <div class="modal-backdrop" id="infoModal">
@@ -2557,6 +2586,334 @@
         $("chatList").appendChild(n);
       });
     }
+  </script>
+  <script>
+(function() {
+  "use strict";
+  var g = function(i) { return document.getElementById(i); };
+  var DB = "duplicity-mygames", dbp = null;
+  var MIME = {
+    html: "text/html", htm: "text/html", xhtml: "application/xhtml+xml", js: "text/javascript", mjs: "text/javascript", cjs: "text/javascript",
+    css: "text/css", json: "application/json", map: "application/json", webmanifest: "application/manifest+json", xml: "application/xml",
+    txt: "text/plain", md: "text/plain", csv: "text/csv", glsl: "text/plain", frag: "text/plain", vert: "text/plain", ts: "text/plain",
+    yaml: "text/plain", yml: "text/plain", ini: "text/plain", cfg: "text/plain", lua: "text/plain", atlas: "text/plain", tmx: "application/xml", tsx: "application/xml",
+    wasm: "application/wasm", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", avif: "image/avif",
+    bmp: "image/bmp", svg: "image/svg+xml", ico: "image/x-icon", mp3: "audio/mpeg", ogg: "audio/ogg", oga: "audio/ogg", wav: "audio/wav",
+    m4a: "audio/mp4", aac: "audio/aac", flac: "audio/flac", opus: "audio/ogg", mp4: "video/mp4", webm: "video/webm", ogv: "video/ogg",
+    woff: "font/woff", woff2: "font/woff2", ttf: "font/ttf", otf: "font/otf", eot: "application/vnd.ms-fontobject",
+    pck: "application/octet-stream", data: "application/octet-stream", bin: "application/octet-stream", unityweb: "application/octet-stream", mem: "application/octet-stream",
+    pdf: "application/pdf", zip: "application/zip", swf: "application/x-shockwave-flash"
+  };
+  function typeOf(path) {
+    var p = path.replace(/\.(gz|br)$/i, ""), m = /\.([A-Za-z0-9]+)$/.exec(p);
+    return (m && MIME[m[1].toLowerCase()]) || "application/octet-stream";
+  }
+  function open() {
+    if (dbp) return dbp;
+    dbp = new Promise(function(res, rej) {
+      var r = indexedDB.open(DB, 1);
+      r.onupgradeneeded = function() {
+        var d = r.result;
+        if (!d.objectStoreNames.contains("games")) d.createObjectStore("games", { keyPath: "id" });
+        if (!d.objectStoreNames.contains("files")) d.createObjectStore("files", { keyPath: "key" }).createIndex("gid", "gid");
+      };
+      r.onsuccess = function() { r.result.onversionchange = function() { r.result.close(); dbp = null; }; res(r.result); };
+      r.onerror = function() { dbp = null; rej(r.error); };
+    });
+    return dbp;
+  }
+  function req(r) { return new Promise(function(res, rej) { r.onsuccess = function() { res(r.result); }; r.onerror = function() { rej(r.error); }; }); }
+  function txDone(t) { return new Promise(function(res, rej) { t.oncomplete = res; t.onerror = function() { rej(t.error); }; t.onabort = function() { rej(t.error || new Error("aborted")); }; }); }
+  function allGames() { return open().then(function(d) { return req(d.transaction("games").objectStore("games").getAll()); }); }
+  function delFiles(id) {
+    return open().then(function(d) {
+      var t = d.transaction("files", "readwrite");
+      t.objectStore("files").delete(IDBKeyRange.bound(id + "/", id + "/￿"));
+      return txDone(t);
+    });
+  }
+  function fmt(n) { return n > 1048576 ? (n / 1048576).toFixed(n > 104857600 ? 0 : 1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB"; }
+  function slug(n) { return n.toLowerCase().replace(/[^a-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60) || "game"; }
+  function say(t, bad) { var m = g("mgMsg"); m.textContent = t; m.style.color = bad ? "#ff7b7b" : ""; }
+
+  // ---------- reading what was dropped ----------
+  function readDir(rd) { return new Promise(function(res, rej) { var all = []; (function nx() { rd.readEntries(function(b) { if (!b.length) return res(all); all = all.concat([].slice.call(b)); nx(); }, rej); })(); }); }
+  function fileOf(e) { return new Promise(function(res, rej) { e.file(res, rej); }); }
+  async function collectDir(dir) {
+    var out = [];
+    // top: list kids of dir; each child dir adds its name
+    async function top(e, prefix) {
+      var kids = await readDir(e.createReader());
+      for (var i = 0; i < kids.length; i++) {
+        var k = kids[i];
+        if (k.isFile) out.push({ path: prefix + k.name, file: await fileOf(k) });
+        else await top(k, prefix + k.name + "/");
+      }
+    }
+    await top(dir, "");
+    return out;
+  }
+  var jszipP = null;
+  function loadZip() {
+    if (window.JSZip) return Promise.resolve();
+    if (jszipP) return jszipP;
+    jszipP = new Promise(function(res, rej) {
+      var s = document.createElement("script");
+      s.src = window.__JSZIP_URL || "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+      s.onload = res; s.onerror = function() { jszipP = null; rej(new Error("zip library")); };
+      document.head.appendChild(s);
+    });
+    return jszipP;
+  }
+  async function unzip(file) {
+    await loadZip();
+    var z = await JSZip.loadAsync(file), out = [], jobs = [];
+    z.forEach(function(p, ent) { if (!ent.dir) jobs.push(ent.async("blob").then(function(b) { out.push({ path: p, file: b }); })); });
+    await Promise.all(jobs);
+    return out;
+  }
+  function baseName(n) { return n.replace(/\.[^.]*$/, ""); }
+  // returns [{name, files:[{path,file}]}]
+  async function groupsFromFiles(list) {
+    var groups = [], loose = [], byFolder = {}, order = [];
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i], rp = f.webkitRelativePath;
+      if (rp && rp.indexOf("/") > 0) {
+        var top = rp.split("/")[0];
+        if (!byFolder[top]) { byFolder[top] = []; order.push(top); }
+        byFolder[top].push({ path: rp.slice(top.length + 1), file: f });
+      } else if (/\.zip$/i.test(f.name)) {
+        groups.push({ name: baseName(f.name), files: await unzip(f) });
+      } else loose.push({ path: f.name, file: f });
+    }
+    order.forEach(function(t) { groups.push({ name: t, files: byFolder[t] }); });
+    if (loose.length) {
+      var h = loose.filter(function(x) { return /\.html?$/i.test(x.path); })[0];
+      groups.push({ name: baseName((h || loose[0]).path), files: loose });
+    }
+    return groups;
+  }
+  async function groupsFromDrop(dt) {
+    var items = [].slice.call(dt.items || []), roots = [];
+    items.forEach(function(it) {   // must be read synchronously during the drop
+      if (it.kind !== "file") return;
+      var e = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
+      roots.push({ entry: e, file: it.getAsFile() });
+    });
+    var groups = [], loose = [];
+    for (var i = 0; i < roots.length; i++) {
+      var r = roots[i];
+      if (r.entry && r.entry.isDirectory) groups.push({ name: r.entry.name, files: await collectDir(r.entry) });
+      else if (r.file) loose.push(r.file);
+      else if (r.entry && r.entry.isFile) loose.push(await fileOf(r.entry));
+    }
+    if (!roots.length) loose = [].slice.call(dt.files || []);
+    if (loose.length) groups = groups.concat(await groupsFromFiles(loose));
+    return groups;
+  }
+
+  // ---------- turning files into a game ----------
+  function clean(files) {
+    var out = [];
+    files.forEach(function(f) {
+      var p = String(f.path).replace(/\\/g, "/").replace(/^(\.\/|\/)+/, "");
+      if (!p || /(^|\/)(__MACOSX|\.git|\.svn)(\/|$)/.test(p) || /(^|\/)(\.DS_Store|Thumbs\.db|desktop\.ini)$/.test(p)) return;
+      out.push({ path: p, file: f.file });
+    });
+    // a single wrapper folder around everything: remove it
+    for (var guard = 0; guard < 4 && out.length; guard++) {
+      if (out.some(function(f) { return /^[^/]+\.html?$/i.test(f.path); })) break;
+      var first = out[0].path.split("/")[0];
+      if (out[0].path.indexOf("/") < 0) break;
+      if (!out.every(function(f) { return f.path.indexOf(first + "/") === 0; })) break;
+      out.forEach(function(f) { f.path = f.path.slice(first.length + 1); });
+    }
+    return out;
+  }
+  function pickEntry(files, name) {
+    var h = files.filter(function(f) { return /\.html?$/i.test(f.path); });
+    if (!h.length) return null;
+    var depth = function(p) { return p.split("/").length; };
+    h.sort(function(a, b) {
+      var ai = /(^|\/)index\.html?$/i.test(a.path) ? 0 : 1, bi = /(^|\/)index\.html?$/i.test(b.path) ? 0 : 1;
+      return depth(a.path) - depth(b.path) || ai - bi || a.path.localeCompare(b.path);
+    });
+    var root = h.filter(function(f) { return depth(f.path) === depth(h[0].path); });
+    var pref = root.filter(function(f) { return /(^|\/)index\.html?$/i.test(f.path); })[0]
+      || root.filter(function(f) { return baseName(f.path.split("/").pop()).toLowerCase() === name.toLowerCase(); })[0];
+    return (pref || root[0]).path;
+  }
+  function pickCover(files) {
+    var imgs = files.filter(function(f) { return /\.(png|jpe?g|webp|gif|svg|avif|bmp)$/i.test(f.path) && f.path.split("/").length <= 3; });
+    var words = /(cover|thumb|thumbnail|poster|banner|preview|splash|icon|logo|screenshot|title)/i;
+    var best = imgs.filter(function(f) { return words.test(f.path.split("/").pop()); });
+    best.sort(function(a, b) { return a.path.split("/").length - b.path.split("/").length || a.file.size - b.file.size; });
+    return best.length ? best[0].path : null;
+  }
+
+  async function saveGroup(grp) {
+    var name = grp.name.replace(/_/g, " ").replace(/\s+/g, " ").trim() || "My game";
+    var files = clean(grp.files);
+    if (!files.length) throw new Error("There were no files in \"" + grp.name + "\".");
+    var entry = pickEntry(files, grp.name);
+    if (!entry) {
+      var swf = files.some(function(f) { return /\.swf$/i.test(f.path); });
+      throw new Error(swf ? "\"" + name + "\" is a Flash (.swf) game. Flash isn't supported here." : "No .html file in \"" + grp.name + "\". The folder needs an index.html (or another .html page) to start from.");
+    }
+    var id = slug(grp.name), total = 0;
+    files.forEach(function(f) { total += f.file.size; });
+    var old = (await allGames()).filter(function(x) { return x.id === id; })[0];
+    say("Saving " + name + " (" + files.length + " files, " + fmt(total) + ")...");
+    var d = await open();
+    if (old) await delFiles(id);
+    try {
+      for (var i = 0; i < files.length; i += 25) {
+        var t = d.transaction("files", "readwrite"), st = t.objectStore("files");
+        files.slice(i, i + 25).forEach(function(f) {
+          var type = typeOf(f.path);
+          st.put({ key: id + "/" + f.path, gid: id, path: f.path, type: type, blob: f.file.slice(0, f.file.size, type) });
+        });
+        await txDone(t);
+        say("Saving " + name + "... " + Math.min(i + 25, files.length) + " / " + files.length);
+      }
+      var rec = { id: id, name: old ? old.name : name, entry: entry, cover: pickCover(files), coverBlob: old && old.coverBlob || null, files: files.length, size: total, added: old ? old.added : Date.now(), updated: Date.now() };
+      var t2 = d.transaction("games", "readwrite");
+      t2.objectStore("games").put(rec);
+      await txDone(t2);
+    } catch (e) {
+      try { await delFiles(id); } catch (x) {}
+      if (e && (e.name === "QuotaExceededError" || /quota/i.test(String(e.message)))) throw new Error("Not enough browser storage for \"" + name + "\" (" + fmt(total) + "). Delete something or free disk space.");
+      throw e;
+    }
+    return { name: name, replaced: !!old };
+  }
+
+  async function handleGroups(groups) {
+    if (!groups.length) { say("Nothing to add. Drop a game folder or a .zip.", true); return; }
+    var ok = [], bad = [];
+    for (var i = 0; i < groups.length; i++) {
+      try { var r = await saveGroup(groups[i]); ok.push(r.name + (r.replaced ? " (updated)" : "")); }
+      catch (e) { bad.push(e && e.message ? e.message : "Couldn't save " + groups[i].name); }
+    }
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    say((ok.length ? "Added: " + ok.join(", ") + ". " : "") + bad.join(" "), !ok.length);
+    refresh();
+  }
+
+  // ---------- running ----------
+  async function swReady() {
+    if (!("serviceWorker" in navigator)) throw new Error("This browser can't run saved games (no service worker).");
+    var reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) reg = await navigator.serviceWorker.register("./sw.js");
+    await navigator.serviceWorker.ready;
+    async function ping() { try { var r = await fetch("mygames/__ping__?t=" + Date.now(), { cache: "no-store" }); return (await r.text()) === "duplicity-mygames-v1"; } catch (e) { return false; } }
+    if (await ping()) return;
+    try { await reg.update(); } catch (e) {}
+    for (var i = 0; i < 10; i++) { await new Promise(function(r) { setTimeout(r, 400); }); if (await ping()) return; }
+    throw new Error("The game runner isn't ready yet. Reload the page once and try again.");
+  }
+  async function play(game) {
+    try { await swReady(); } catch (e) { say(e.message, true); return; }
+    g("mgModal").classList.remove("open");
+    var token = ++launchToken;
+    g("playerOverlay").classList.add("open");
+    g("playerTitle").textContent = game.name;
+    setPlayerLoading(true, "starting " + game.name);
+    var f = freshFrame();
+    f.addEventListener("load", function() { setTimeout(function() { if (token === launchToken) setPlayerLoading(false); }, 300); });
+    f.src = new URL("mygames/" + encodeURIComponent(game.id) + "/" + game.entry.split("/").map(encodeURIComponent).join("/"), document.baseURI).href;
+  }
+
+  // ---------- list / row ----------
+  var urls = [];
+  function coverUrl(game, blobCache) {
+    var b = game.coverBlob || (game.cover && blobCache[game.id]);
+    if (!b) return placeholderCover(game.name);
+    var u = URL.createObjectURL(b); urls.push(u); return u;
+  }
+  async function covers(list) {
+    var d = await open(), out = {};
+    for (var i = 0; i < list.length; i++) {
+      var gm = list[i];
+      if (gm.coverBlob || !gm.cover) continue;
+      try { var rec = await req(d.transaction("files").objectStore("files").get(gm.id + "/" + gm.cover)); if (rec) out[gm.id] = rec.blob; } catch (e) {}
+    }
+    return out;
+  }
+  async function refresh() {
+    urls.forEach(function(u) { try { URL.revokeObjectURL(u); } catch (e) {} }); urls = [];
+    var list = [];
+    try { list = (await allGames()).sort(function(a, b) { return b.updated - a.updated; }); } catch (e) { say("Couldn't open saved games on this browser.", true); }
+    var cv = await covers(list);
+    var box = g("mgList"); box.textContent = "";
+    if (!list.length) { var n = document.createElement("div"); n.className = "chat-note"; n.textContent = "No games yet."; box.appendChild(n); }
+    list.forEach(function(gm) {
+      var it = document.createElement("div"); it.className = "mg-item";
+      var img = document.createElement("img"); img.src = coverUrl(gm, cv); img.alt = ""; img.className = "mg-thumb";
+      var mid = document.createElement("div"); mid.className = "mg-mid";
+      var nm = document.createElement("div"); nm.className = "mg-name"; nm.textContent = gm.name;
+      var sub = document.createElement("div"); sub.className = "mg-sub"; sub.textContent = gm.files + " files, " + fmt(gm.size) + ", starts at " + gm.entry;
+      mid.appendChild(nm); mid.appendChild(sub);
+      var acts = document.createElement("div"); acts.className = "mg-acts";
+      function btn(t, fn) { var b = document.createElement("button"); b.textContent = t; b.onclick = fn; acts.appendChild(b); return b; }
+      btn("Play", function() { play(gm); });
+      btn("Image", function() { pickCoverFor(gm); });
+      btn("Rename", function() {
+        var v = prompt("Game name", gm.name);
+        if (v && v.trim()) open().then(function(d) { gm.name = v.trim().slice(0, 60); var t = d.transaction("games", "readwrite"); t.objectStore("games").put(gm); return txDone(t); }).then(refresh);
+      });
+      btn("Delete", function() {
+        if (confirm("Delete " + gm.name + " and all its saved files?")) open().then(function(d) { var t = d.transaction("games", "readwrite"); t.objectStore("games").delete(gm.id); return txDone(t); }).then(function() { return delFiles(gm.id); }).then(refresh);
+      });
+      it.appendChild(img); it.appendChild(mid); it.appendChild(acts); box.appendChild(it);
+    });
+    drawRow(list, cv);
+    try { var est = navigator.storage && navigator.storage.estimate && await navigator.storage.estimate(); g("mgUsage").textContent = est ? "Browser storage used: " + fmt(est.usage || 0) + (est.quota ? " of about " + fmt(est.quota) : "") : ""; } catch (e) {}
+  }
+  function drawRow(list, cv) {
+    var row = g("rowMine"); if (!row) return;
+    var bx = row.querySelector(".row-cards"); bx.textContent = "";
+    list.forEach(function(gm) {
+      var c = document.createElement("div"); c.className = "game-card";
+      var w = document.createElement("div"); w.className = "cover-wrap";
+      var im = document.createElement("img"); im.src = coverUrl(gm, cv); im.alt = gm.name; w.appendChild(im);
+      var b = document.createElement("div"); b.className = "card-body";
+      var t = document.createElement("div"); t.className = "game-title"; t.textContent = gm.name;
+      var m = document.createElement("div"); m.className = "game-meta"; var s = document.createElement("span"); s.textContent = "my game"; m.appendChild(s);
+      b.appendChild(t); b.appendChild(m); c.appendChild(w); c.appendChild(b);
+      c.onclick = function() { play(gm); };
+      bx.appendChild(c);
+    });
+    row.hidden = !list.length;
+  }
+  function pickCoverFor(gm) {
+    var inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*";
+    inp.onchange = function() {
+      var f = inp.files[0]; if (!f) return;
+      open().then(function(d) { gm.coverBlob = f.slice(0, f.size, f.type); var t = d.transaction("games", "readwrite"); t.objectStore("games").put(gm); return txDone(t); }).then(refresh);
+    };
+    inp.click();
+  }
+
+  // ---------- wiring ----------
+  g("mgBtn").onclick = function() { g("mgModal").classList.add("open"); say(""); refresh(); };
+  g("mgClose").onclick = function() { g("mgModal").classList.remove("open"); };
+  g("mgPickFolder").onclick = function() { g("mgFolder").click(); };
+  g("mgPickFiles").onclick = function() { g("mgFiles").click(); };
+  [g("mgFolder"), g("mgFiles")].forEach(function(inp) {
+    inp.onchange = function() { var l = [].slice.call(inp.files); inp.value = ""; groupsFromFiles(l).then(handleGroups).catch(function(e) { say(e.message || "Couldn't read that.", true); }); };
+  });
+  var dz = g("mgDrop");
+  ["dragenter", "dragover"].forEach(function(ev) { dz.addEventListener(ev, function(e) { e.preventDefault(); dz.classList.add("over"); }); });
+  ["dragleave", "drop"].forEach(function(ev) { dz.addEventListener(ev, function() { dz.classList.remove("over"); }); });
+  dz.addEventListener("drop", function(e) {
+    e.preventDefault();
+    var p = groupsFromDrop(e.dataTransfer);
+    p.then(handleGroups).catch(function(er) { say(er.message || "Couldn't read that.", true); });
+  });
+  refresh();
+})();
+
   </script>
 </body>
 </html>
