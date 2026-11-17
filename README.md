@@ -19,8 +19,6 @@ Duplicity is a gaming and coding platform inspired by [Surd](https://github.com/
 - Added support for music and PDF files.
 - Redesigned the project logo.
 - Integrated a virtual machine emulator (Note: Performance may vary; recommended for use with lightweight 32-bit Linux distributions).
-
-**November 16, 2026**
 - Implemented various GUI and chat enhancements.
 - Added an option for users to export their personal data.
 
