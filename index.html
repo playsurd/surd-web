@@ -558,6 +558,7 @@
     <span class="foot-brand"><svg class="logo-mark" viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path d="M8 44C3 38 3 28 9 23C8 28 11 30 13 27C11 20 14 14 15 9C18 13 20 15 21 19C20 12 21 6 25 2C26 9 30 12 31 18C33 14 33 11 34 6C38 11 41 16 40 24C44 28 44 38 39 44C34 47 14 47 8 44Z" fill="#1346d8"/><path d="M12 43C8 37 9 30 13 27C13 30 15 31 16 29C15 24 17 20 18 17C20 20 21 22 22 25C22 19 23 13 25 9C26 15 29 18 29 23C31 20 31 18 32 15C35 19 37 23 36 29C39 33 39 39 35 43C30 45 17 45 12 43Z" fill="#1f86ff"/><path d="M17 43C14 38 16 33 19 31C19 33 21 34 22 33C21 29 23 26 24 23C25 27 27 29 27 32C29 31 29 29 30 27C33 31 34 38 31 43C28 44.5 20 44.5 17 43Z" fill="#6fd8ff"/><path d="M24 32C25.5 35 28 36.5 27 40C26.5 42 25 43 24 43C23 43 21.5 42 21 40C20.5 37 23 35.5 24 32Z" fill="#e6fcff"/><g fill="#0b1020" stroke="#d6f6ff" stroke-width=".7" stroke-linejoin="round"><path d="M24 4.6L26.1 6.8L24 9L21.9 6.8Z"/><path d="M22.7 9H25.3V15.8H22.7Z"/><path d="M12.6 15.6C12.6 14.5 14.2 14.3 15.8 15.2L21.3 15.8H26.7L32.2 15.2C33.8 14.3 35.4 14.5 35.4 15.6C35.4 17.4 33.2 18.3 31.5 18.1L26.6 19H21.4L16.5 18.1C14.8 18.3 12.6 17.4 12.6 15.6Z"/><path d="M21.4 19H26.6V32.4L25.3 31.4L25.6 35.4L24.2 33.4L23.2 38L22.3 34.4L21.4 36Z"/></g><path d="M22.9 11.3H25.1M22.9 13.1H25.1M24 20.5V31" stroke="#6fd3ff" stroke-width=".6" fill="none"/></svg><span>Duplicity</span></span>
     <div class="row">
       <button id="footerInfoBtn">Partners</button>
+      <button id="footerTermsBtn">Terms</button>
       <button id="footerSettingsBtn">Settings</button>
     </div>
   </footer>
@@ -641,6 +642,61 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="termsModal">
+    <div class="modal" style="max-width:720px">
+      <div class="modal-header">
+        <h2>Terms of Service</h2>
+        <button onclick="closeModal('termsModal')">Close</button>
+      </div>
+      <div class="setting-group" style="line-height:1.6">
+        <p class="chat-note">Last updated: November 17, 2026</p>
+        <p style="border-left:3px solid var(--cyan);padding:10px 14px;background:var(--bg-elevated);border-radius:0 8px 8px 0">
+          <b>The short version:</b> Duplicity is a hobby project for fun. Most games here are made by other people and run from other servers. If something of yours is here and you want it gone, email <a href="mailto:duplicitysuport@gmail.com" style="color:var(--cyan)">duplicitysuport@gmail.com</a> and it will be removed. Be decent in chat. Use the site at your own risk.
+        </p>
+
+        <h3>1. Using Duplicity</h3>
+        <p>By using Duplicity you agree to these terms. If you don't agree, please don't use the site. You must be at least 13 years old to create a chat account. If you're under the age of majority where you live, get a parent or guardian's okay first.</p>
+
+        <h3>2. Games, files and other people's work</h3>
+        <p>Duplicity links to, embeds, or hosts games, tools and other content made by third parties. I don't claim ownership of any of it. Titles, characters, logos and trademarks belong to their respective owners, and credits are shown where known. Some content may have been added without the creator's permission by mistake. If you made something, or own the rights to it, and you want it removed, I'll take it down.</p>
+        <div style="border:1px solid var(--cyan);border-radius:8px;padding:14px 16px;margin:10px 0;box-shadow:0 0 12px var(--cyan-dim)">
+          <h3 style="margin-bottom:6px">Request a removal</h3>
+          <p>Email <a href="mailto:duplicitysuport@gmail.com" style="color:var(--cyan)">duplicitysuport@gmail.com</a> with:</p>
+          <ul style="margin:8px 0 8px 20px">
+            <li>The name of the game or content, and its link or location on Duplicity.</li>
+            <li>Proof or a short explanation that you are the creator or rights holder (or act for them).</li>
+            <li>Your name and a way to reach you.</li>
+            <li>A statement that you believe in good faith that the use isn't authorized and that your information is accurate.</li>
+          </ul>
+          <p>Valid requests are removed promptly, usually within a few days. I may reply to confirm who you are before acting. Repeated or abusive bogus requests may be ignored.</p>
+        </div>
+        <p>Creators who'd rather keep their game listed but want the credit, link or description corrected can use the same address.</p>
+
+        <h3>3. Your account and chat</h3>
+        <ul style="margin-left:20px">
+          <li>You're responsible for your account and password. There is no password reset, so keep it safe and don't reuse a password from elsewhere.</li>
+          <li>Don't harass people, threaten anyone, post hateful, sexual or illegal content, share personal information (yours or others'), spam, or impersonate staff.</li>
+          <li>Don't try to break, overload, or get around the site, including bans, mutes, or permissions.</li>
+          <li>Moderators and admins can delete messages, mute users, and ban accounts, temporarily or permanently, at their discretion and without notice.</li>
+          <li>You can report messages with the Report button.</li>
+        </ul>
+
+        <h3>4. Your data</h3>
+        <p>Chat accounts and messages are stored with Google Firebase. Things you save in your browser, such as My Games files and settings, stay on your device and are not uploaded. You can export your personal data from the site. To have your chat account and messages deleted, email <a href="mailto:duplicitysuport@gmail.com" style="color:var(--cyan)">duplicitysuport@gmail.com</a>. Your data is never sold. Please don't use your real name.</p>
+
+        <h3>5. No warranty</h3>
+        <p>Duplicity is provided "as is" and "as available". Games are made by third parties and run from other servers, so there's no promise they're safe, working, or appropriate for every audience. The site can go down, change, or disappear at any time. To the fullest extent the law allows, I'm not liable for any loss or damage from using the site or anything on it.</p>
+
+        <h3>6. Changes</h3>
+        <p>These terms may be updated as the site changes. The date at the top shows the latest version. If you keep using Duplicity after an update, you accept the new terms.</p>
+
+        <h3>7. Contact</h3>
+        <p>Questions, removal requests, or account help: <a href="mailto:duplicitysuport@gmail.com" style="color:var(--cyan)">duplicitysuport@gmail.com</a></p>
+        <p class="chat-note">Duplicity is an independent student project and isn't affiliated with the creators of the games it lists.</p>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="infoModal">
     <div class="modal">
       <div class="modal-header">
@@ -684,6 +740,7 @@
           </div>
           <div class="chat-error" id="chatAuthErr"></div>
           <p class="chat-note">Don't reuse a password from anywhere else. There's no password reset, so don't forget it.</p>
+          <p class="chat-note">By creating an account you confirm you're 13 or older and agree to the <a href="#" onclick="openModal('termsModal');return false" style="color:var(--cyan)">Terms of Service</a>.</p>
         </div>
 
         <div class="setting-group hidden" id="chatCompose">
@@ -1279,6 +1336,7 @@
     document.getElementById("infoBtn").onclick = function() { openModal("infoModal"); };
     document.getElementById("footerInfoBtn").onclick = function() { openModal("infoModal"); };
     document.getElementById("settingsBtn").onclick = function() { openModal("settingsModal"); };
+    document.getElementById("footerTermsBtn").onclick = function() { openModal("termsModal"); };
     document.getElementById("footerSettingsBtn").onclick = function() { openModal("settingsModal"); };
 
     document.getElementById("backBtn").onclick = closePlayer;
