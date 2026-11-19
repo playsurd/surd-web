@@ -1,26 +1,32 @@
-# surd
+# Duplicity
 
-fast unblocked games.
+Duplicity is a gaming and coding platform inspired by [Surd](https://github.com/playsurd/surd-web). I would like to extend my thanks to the original developers, as this project utilizes a bit of their code as a foundational base. My goal with this project is to create a robust and fun gaming platform for me and my fellow students, with the intention of significantly expanding and customizing the platform over time.
 
-## some of what's on it
+## Update Log
 
-hollow knight · celeste · terraria · miside · clover pit · antonblast ·
-untitled goose game · brotato · amanda the adventurer · that's not my neighbor ·
-minecraft (a bunch of versions) · geometry dash · slope · every papa's game ·
-100+ flash games · friday night funkin' and most of its mods
+**November 14, 2026**
+- Implemented a new chat feature.
+- Optimized loading processes and refined platform branding.
+- Migrated to personal hosting.
+- Introduced moderator and administrator permission levels.
 
-## credits
+**November 15, 2026**
+- Added over 350 new games (game thumbnails currently in progress).
+- Completed migration from private repositories to this public repository.
 
-almost none of these games were made browser-playable by us. getting something
-like hollow knight or celeste running in a tab is genuinely hard work, and it was
-done by porters in the unblocked games scene. among them are **breadbb**, **bog**,
-**98corbins**, **slqnt** and **snubby.top**, plus everyone at
-[webport.ing](https://webport.ing).
+**November 16, 2026**
+- Conducted extensive chat reworks and added management roles.
+- Added support for music and PDF files.
+- Redesigned the project logo.
+- Integrated a virtual machine emulator (Note: Performance may vary; recommended for use with lightweight 32-bit Linux distributions).
+- Implemented various GUI and chat enhancements.
+- Added an option for users to export their personal data.
 
-where we know who ported a game, they're credited on the game screen next to the
-original developer. if you ported something here and want your name on it, off
-it, or spelled properly, open an issue.
-
-original developers keep all credit for the games themselves.
-
-rights holder and want something gone? email playsurd@protonmail.com and it goes.
+**November 17, 2026**
+- Added partnership with dominum network
+- Added music creation software
+- Various quality of life updates
+- Added terms of service
+**November 18, 2026**
+- Fixed sandstorm
+- Added MUCH needed updates to the soundboard to remove some bad stuff like slurs
