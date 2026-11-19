@@ -27,3 +27,6 @@ Duplicity is a gaming and coding platform inspired by [Surd](https://github.com/
 - Added music creation software
 - Various quality of life updates
 - Added terms of service
+**November 18, 2026**
+- Fixed sandstorm
+- Added MUCH needed updates to the soundboard to remove some bad stuff like slurs
